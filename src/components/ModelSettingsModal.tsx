@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { FavoriteModel, ProviderKeys } from '@/lib/db';
 
@@ -51,6 +52,11 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const [newModelId, setNewModelId] = useState('');
   const [newModelName, setNewModelName] = useState('');
 
+  // Live Fetched Models State
+  const [liveModels, setLiveModels] = useState<{ id: string; name: string; provider: string }[]>([]);
+  const [fetchingLive, setFetchingLive] = useState(false);
+  const [liveError, setLiveError] = useState('');
+
   // Test & Quota States
   const [testResult, setTestResult] = useState<{
     loading: boolean;
@@ -78,13 +84,50 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
       name: newModelName.trim(),
       provider: selectedProvider,
     };
-    setFavorites([...favorites, newFav]);
+    if (!favorites.some((f) => f.id === newFav.id)) {
+      setFavorites([...favorites, newFav]);
+    }
     setNewModelId('');
     setNewModelName('');
   };
 
+  const handleSelectLiveModel = (m: { id: string; name: string; provider: string }) => {
+    const newFav: FavoriteModel = {
+      id: m.id,
+      name: m.name,
+      provider: selectedProvider,
+    };
+    if (!favorites.some((f) => f.id === newFav.id)) {
+      setFavorites([...favorites, newFav]);
+    }
+  };
+
   const handleRemoveFavorite = (id: string) => {
     setFavorites(favorites.filter((f) => f.id !== id));
+  };
+
+  const handleFetchLiveModels = async () => {
+    setFetchingLive(true);
+    setLiveError('');
+    setLiveModels([]);
+
+    try {
+      const res = await fetch('/api/models/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: selectedProvider }),
+      });
+      const data = await res.json();
+      if (data.success && data.models) {
+        setLiveModels(data.models);
+      } else {
+        setLiveError(data.error || 'ไม่สามารถดึงรายการโมเดลได้');
+      }
+    } catch (err: any) {
+      setLiveError(err.message || 'เกิดข้อผิดพลาดในการดึงรายการโมเดล');
+    } finally {
+      setFetchingLive(false);
+    }
   };
 
   const handleRunConnectionTest = async () => {
@@ -158,7 +201,11 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setSelectedProvider(p.id as any)}
+                  onClick={() => {
+                    setSelectedProvider(p.id as any);
+                    setLiveModels([]);
+                    setLiveError('');
+                  }}
                   className={`p-3 rounded-xl border text-left font-medium transition ${
                     selectedProvider === p.id
                       ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-sm'
@@ -274,7 +321,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                     type="text"
                     value={formKeys.okmdBaseUrl || ''}
                     onChange={(e) => setFormKeys({ ...formKeys, okmdBaseUrl: e.target.value })}
-                    placeholder="https://api.okmd.ai/v1"
+                    placeholder="https://gen.ai.kku.ac.th/okmd/api/v1"
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -301,57 +348,114 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
             )}
           </div>
 
-          {/* 3. Favorite Models Manager */}
+          {/* 3. Dynamic Live Fetching of Models from Provider */}
           <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-200 flex items-center gap-1.5">
-                <span>3. ⚙️ จัดการโมเดลโปรด (Favorite Models)</span>
+                <Search className="w-4 h-4 text-cyan-400" />
+                <span>3. ดึงโมเดลที่เปิดทำงานอยู่จาก {selectedProvider.toUpperCase()}</span>
               </h3>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {favorites.map((fav) => (
-                <div
-                  key={fav.id}
-                  className="bg-indigo-950/80 border border-indigo-500/40 text-indigo-200 text-xs px-3 py-1 rounded-lg flex items-center space-x-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="font-medium">{fav.name}</span>
-                  <span className="text-[10px] text-indigo-400">({fav.id})</span>
-                  <button
-                    onClick={() => handleRemoveFavorite(fav.id)}
-                    className="text-gray-400 hover:text-red-400 transition"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Add new favorite model form */}
-            <div className="pt-2 border-t border-gray-850 flex items-center space-x-2">
-              <input
-                type="text"
-                value={newModelId}
-                onChange={(e) => setNewModelId(e.target.value)}
-                placeholder="Model ID (เช่น gemini-2.5-flash)"
-                className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white"
-              />
-              <input
-                type="text"
-                value={newModelName}
-                onChange={(e) => setNewModelName(e.target.value)}
-                placeholder="ชื่อแสดงผล (เช่น Gemini 2.5 Flash)"
-                className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white"
-              />
               <button
                 type="button"
-                onClick={handleAddFavorite}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium flex items-center gap-1 shrink-0"
+                onClick={handleFetchLiveModels}
+                disabled={fetchingLive}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs flex items-center gap-1 transition shadow disabled:opacity-50"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>เพิ่ม</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${fetchingLive ? 'animate-spin' : ''}`} />
+                <span>{fetchingLive ? 'กำลังดึงข้อมูล...' : '🔍 ดึงรายการโมเดลที่ทำงานอยู่'}</span>
               </button>
+            </div>
+
+            {liveError && (
+              <div className="p-2.5 bg-red-950/60 border border-red-500/40 rounded-lg text-red-300 text-[11px]">
+                ⚠️ {liveError}
+              </div>
+            )}
+
+            {liveModels.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] text-gray-400">
+                  พบ {liveModels.length} โมเดล (คลิกเลือกเพื่อบันทึกลงโมเดลโปรด):
+                </div>
+                <div className="max-h-40 overflow-y-auto border border-gray-800 rounded-lg p-2 bg-gray-900 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {liveModels.map((m) => {
+                    const isAdded = favorites.some((f) => f.id === m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => handleSelectLiveModel(m)}
+                        className={`p-2 rounded-lg text-left border transition flex items-center justify-between ${
+                          isAdded
+                            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 font-semibold'
+                            : 'bg-gray-950 border-gray-800 text-gray-200 hover:border-indigo-500 hover:bg-gray-800'
+                        }`}
+                      >
+                        <div className="truncate mr-1">
+                          <div className="font-bold text-xs truncate">{m.name}</div>
+                          <div className="text-[10px] text-gray-400 font-mono truncate">{m.id}</div>
+                        </div>
+                        {isAdded ? (
+                          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <Plus className="w-4 h-4 text-indigo-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Favorite Models List */}
+            <div className="pt-3 border-t border-gray-850 space-y-2">
+              <h4 className="font-semibold text-gray-200 text-xs">
+                รายการโมเดลโปรดที่บันทึกไว้ในระบบ ({favorites.length} โมเดล)
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {favorites.map((fav) => (
+                  <div
+                    key={fav.id}
+                    className="bg-indigo-950/80 border border-indigo-500/40 text-indigo-200 text-xs px-3 py-1 rounded-lg flex items-center space-x-2"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="font-medium">{fav.name}</span>
+                    <span className="text-[10px] text-indigo-400">[{fav.provider.toUpperCase()}]</span>
+                    <button
+                      onClick={() => handleRemoveFavorite(fav.id)}
+                      className="text-gray-400 hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add custom favorite model form */}
+              <div className="pt-2 flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={newModelId}
+                  onChange={(e) => setNewModelId(e.target.value)}
+                  placeholder="Model ID (เช่น gpt-4o)"
+                  className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                  placeholder="ชื่อแสดงผล"
+                  className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddFavorite}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium flex items-center gap-1 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>เพิ่มด้วยตนเอง</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -369,7 +473,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 [x] 🔄 สลับโมเดลในรายการโปรดให้อัตโนมัติเมื่อติด Rate Limit (429)
               </span>
               <span className="text-[11px] text-gray-400 mt-0.5 block leading-normal">
-                หากส่ง Request แล้วเจอ HTTP Status 429 (Rate Limit ชั่วคราว) ระบบจะสลับไปใช้โมเดลโปรดลำดับถัดไปให้อัตโนมัติทันที
+                หากส่ง Request แล้วเจอ HTTP Status 429 ระบบจะสลับไปใช้โมเดลโปรดลำดับถัดไปที่มี API Key ให้อัตโนมัติ
               </span>
             </label>
           </div>

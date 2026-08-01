@@ -18,6 +18,15 @@ export interface StreamChunk {
   done?: boolean;
 }
 
+export function getProviderApiKey(provider: string, keys: ProviderKeys): string {
+  if (provider === 'gemini') return keys.geminiApiKey || process.env.GEMINI_API_KEY || '';
+  if (provider === 'openai') return keys.openaiApiKey || process.env.OPENAI_API_KEY || '';
+  if (provider === 'claude') return keys.claudeApiKey || process.env.ANTHROPIC_API_KEY || '';
+  if (provider === 'openrouter') return keys.openrouterApiKey || process.env.OPENROUTER_API_KEY || '';
+  if (provider === 'okmd') return keys.okmdApiKey || '';
+  return '';
+}
+
 export async function callAIProvider(
   model: FavoriteModel,
   messages: ChatPayload['messages'],
@@ -26,12 +35,13 @@ export async function callAIProvider(
 ): Promise<Response> {
   const provider = model.provider;
   const modelId = model.id;
+  const apiKey = getProviderApiKey(provider, keys);
+
+  if (!apiKey) {
+    throw new Error(`ยังไม่ได้กรอก API Key สำหรับ Provider: ${provider.toUpperCase()}`);
+  }
 
   if (provider === 'gemini') {
-    const apiKey = keys.geminiApiKey || process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('Missing Gemini API Key');
-    
-    // Map standard messages to Gemini contents format
     const contents = messages.map((m) => {
       let text = m.content;
       if (m.attachments && m.attachments.length > 0) {
@@ -60,23 +70,18 @@ export async function callAIProvider(
       body: JSON.stringify(body),
     });
   } else if (provider === 'openai' || provider === 'openrouter' || provider === 'okmd') {
-    let apiKey = '';
     let baseUrl = '';
 
     if (provider === 'openai') {
-      apiKey = keys.openaiApiKey || process.env.OPENAI_API_KEY || '';
       baseUrl = 'https://api.openai.com/v1/chat/completions';
     } else if (provider === 'openrouter') {
-      apiKey = keys.openrouterApiKey || process.env.OPENROUTER_API_KEY || '';
       baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
     } else if (provider === 'okmd') {
-      apiKey = keys.okmdApiKey || '';
-      baseUrl = keys.okmdBaseUrl
-        ? `${keys.okmdBaseUrl.replace(/\/$/, '')}/chat/completions`
-        : 'https://api.okmd.ai/v1/chat/completions';
+      const rawBase = keys.okmdBaseUrl
+        ? keys.okmdBaseUrl.replace(/\/$/, '')
+        : 'https://gen.ai.kku.ac.th/okmd/api/v1';
+      baseUrl = `${rawBase}/chat/completions`;
     }
-
-    if (!apiKey) throw new Error(`Missing ${provider.toUpperCase()} API Key`);
 
     const formattedMessages: any[] = [];
     if (systemPrompt) {
@@ -112,9 +117,6 @@ export async function callAIProvider(
       }),
     });
   } else if (provider === 'claude') {
-    const apiKey = keys.claudeApiKey || process.env.ANTHROPIC_API_KEY || '';
-    if (!apiKey) throw new Error('Missing Anthropic Claude API Key');
-
     const formattedMessages = messages.map((m) => {
       let text = m.content;
       if (m.attachments && m.attachments.length > 0) {
@@ -152,16 +154,39 @@ export async function executeAIRequestWithFallback(
 ) {
   const { modelId, messages, systemPrompt, keys, favoriteModels, autoFallback429 } = payload;
 
-  // Build candidate model sequence
-  const initialModel = favoriteModels.find((m) => m.id === modelId) || {
+  // Infer provider safely if model not explicitly in favoriteModels list
+  const foundModel = favoriteModels.find((m) => m.id === modelId);
+  const initialModel: FavoriteModel = foundModel || {
     id: modelId,
     name: modelId,
-    provider: modelId.includes('claude') ? 'claude' : modelId.includes('gpt') ? 'openai' : 'gemini',
+    provider: modelId.includes('claude')
+      ? 'claude'
+      : modelId.includes('gpt') || modelId.startsWith('o1') || modelId.startsWith('o3')
+      ? 'openai'
+      : modelId.includes('gemini')
+      ? 'gemini'
+      : 'okmd',
   };
+
+  // Ensure initial model provider has an API Key
+  const initialKey = getProviderApiKey(initialModel.provider, keys);
+  if (!initialKey) {
+    onChunk({
+      error: `ไม่สามารถเรียกใช้งานโมเดล "${initialModel.name}" ได้ เนื่องจากยังไม่ได้กรอก API Key สำหรับ ${initialModel.provider.toUpperCase()} ในหน้าตั้งค่า`,
+      done: true,
+    });
+    return;
+  }
+
+  // Filter model queue to ONLY include models with valid API keys
+  const candidateModels = favoriteModels.filter((m) => {
+    const k = getProviderApiKey(m.provider, keys);
+    return !!k;
+  });
 
   const modelQueue: FavoriteModel[] = [initialModel];
   if (autoFallback429) {
-    favoriteModels.forEach((m) => {
+    candidateModels.forEach((m) => {
       if (m.id !== initialModel.id) {
         modelQueue.push(m);
       }
@@ -176,7 +201,7 @@ export async function executeAIRequestWithFallback(
     if (i > 0) {
       onChunk({
         fallbackTriggered: true,
-        fallbackNotice: `\n\n> 🔄 **Notice:** ติด Rate Limit (429) บนโมเดลเดิม สลับไปใช้โมเดลโปรด **${currentModel.name}**ให้อัตโนมัติ...\n\n`,
+        fallbackNotice: `\n\n> 🔄 **Notice:** ติด Rate Limit (429) บนโมเดลเดิม สลับไปใช้โมเดลโปรด **${currentModel.name}** (${currentModel.provider.toUpperCase()}) ให้อัตโนมัติ...\n\n`,
         modelUsed: currentModel.name,
       });
     }
@@ -185,9 +210,9 @@ export async function executeAIRequestWithFallback(
       const res = await callAIProvider(currentModel, messages, systemPrompt, keys);
 
       if (res.status === 429 && autoFallback429 && i < modelQueue.length - 1) {
-        console.warn(`Model ${currentModel.id} returned 429 Rate Limit. Attempting auto-fallback to next model...`);
+        console.warn(`Model ${currentModel.id} returned 429 Rate Limit. Attempting auto-fallback...`);
         lastError = `429 Rate limit on ${currentModel.name}`;
-        continue; // Fallback to next model in loop!
+        continue;
       }
 
       if (!res.ok) {
@@ -209,7 +234,6 @@ export async function executeAIRequestWithFallback(
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // SSE line processing
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
@@ -254,12 +278,12 @@ export async function executeAIRequestWithFallback(
       }
 
       success = true;
-      break; // Successfully finished
+      break;
     } catch (err: any) {
       lastError = err.message || String(err);
       console.error(`Error with model ${currentModel.id}:`, err);
       if (i === modelQueue.length - 1) {
-        onChunk({ error: `เกิดข้อผิดพลาดในการเรียกใช้ AI: ${lastError}` });
+        onChunk({ error: `เกิดข้อผิดพลาดในการเรียกใช้ AI (${currentModel.provider.toUpperCase()}): ${lastError}` });
       }
     }
   }
