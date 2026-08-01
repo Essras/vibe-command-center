@@ -14,6 +14,8 @@ export interface ProviderKeys {
   openrouterApiKey?: string;
   okmdApiKey?: string;
   okmdBaseUrl?: string;
+  googleClientId?: string;
+  googleClientSecret?: string;
 }
 
 export interface Project {

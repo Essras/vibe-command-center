@@ -1,0 +1,93 @@
+import { NextResponse } from 'next/server';
+import { getDb, saveDb, UserMember } from '@/lib/db';
+import { createToken, ADMIN_USERNAME } from '@/lib/auth';
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+
+  if (error || !code) {
+    return NextResponse.redirect(new URL('/login?error=GoogleAuthFailed', req.url));
+  }
+
+  const db = getDb();
+  const clientId = process.env.GOOGLE_CLIENT_ID || db.keys?.googleClientId || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || db.keys?.googleClientSecret || '';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://vibe.zodiacpsych.com/api/auth/google/callback';
+
+  try {
+    // 1. Exchange authorization code for Google Access Tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const errBody = await tokenRes.text();
+      console.error('Google Token Exchange Error:', errBody);
+      return NextResponse.redirect(new URL('/login?error=TokenExchangeFailed', req.url));
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    // 2. Fetch Google User Profile (email & name)
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!userRes.ok) {
+      return NextResponse.redirect(new URL('/login?error=FetchProfileFailed', req.url));
+    }
+
+    const googleUser = await userRes.json();
+    const email = googleUser.email;
+    const username = email ? email.split('@')[0] : 'google_user_' + Date.now();
+
+    // 3. Find or create member in local database
+    let existingUserIndex = db.users.findIndex(
+      (u) => u.username === username || u.username === email
+    );
+
+    const isEnvAdmin = username === ADMIN_USERNAME || email === ADMIN_USERNAME;
+    const userRole = isEnvAdmin ? 'admin' : 'member';
+
+    if (existingUserIndex === -1) {
+      const newUser: UserMember = {
+        id: 'usr-' + Date.now(),
+        username: username,
+        password: 'google_oauth_user',
+        role: userRole,
+        creditsBalance: userRole === 'admin' ? 99999 : 100.0,
+        createdAt: new Date().toISOString(),
+      };
+      db.users.push(newUser);
+      saveDb(db);
+    }
+
+    // 4. Create JWT session token
+    const token = await createToken({ username, role: userRole });
+    const response = NextResponse.redirect(new URL('/', req.url));
+
+    response.cookies.set('vibe_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
+  } catch (err: any) {
+    console.error('Google Callback Error:', err);
+    return NextResponse.redirect(new URL('/login?error=' + encodeURIComponent(err.message), req.url));
+  }
+}

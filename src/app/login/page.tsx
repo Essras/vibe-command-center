@@ -110,12 +110,44 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition disabled:opacity-50 text-sm flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition disabled:opacity-50 text-sm flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
             <Lock className="w-4 h-4" />
             <span>{loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ (Sign In)'}</span>
           </button>
         </form>
+
+        <div className="relative flex py-4 items-center">
+          <div className="flex-grow border-t border-gray-800"></div>
+          <span className="flex-shrink mx-4 text-[11px] text-gray-500 font-semibold">หรือ</span>
+          <div className="flex-grow border-t border-gray-800"></div>
+        </div>
+
+        {/* Google OAuth Login Button */}
+        <a
+          href="/api/auth/google"
+          className="w-full py-3 bg-gray-950 hover:bg-gray-850 border border-gray-750 text-white font-semibold rounded-xl shadow-md transition text-xs flex items-center justify-center gap-2.5 cursor-pointer text-gray-200"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
+            <path
+              fill="#EA4335"
+              d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.6 14.8c-.3-.8-.4-1.7-.4-2.8s.1-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
+            />
+          </svg>
+          <span>เข้าสู่ระบบด้วย Google Account (Sign in with Google)</span>
+        </a>
 
         <div className="mt-8 text-center text-[11px] text-gray-500 border-t border-gray-800/60 pt-4">
           Protected Web Console • HTTPS SSL • Hostinger VPS
