@@ -25,6 +25,7 @@ export async function POST(req: Request) {
         username: user.username.trim(),
         password: user.password,
         role: user.role || 'member',
+        creditsBalance: typeof user.creditsBalance === 'number' ? user.creditsBalance : 100.0,
         createdAt: new Date().toISOString(),
       };
       db.users.push(newUser);

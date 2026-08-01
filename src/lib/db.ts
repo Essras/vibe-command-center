@@ -30,6 +30,29 @@ export interface UserMember {
   username: string;
   password: string;
   role: 'admin' | 'member';
+  creditsBalance: number;
+  createdAt: string;
+}
+
+export interface TokenUsageLogItem {
+  id: string;
+  userId: string;
+  projectId?: string;
+  modelUsed: string;
+  promptTokens: number;
+  completionTokens: number;
+  creditsDeducted: number;
+  timestamp: string;
+}
+
+export interface TopupLogItem {
+  id: string;
+  userId: string;
+  amount: number;
+  creditsAdded: number;
+  paymentGateway: string;
+  transactionId: string;
+  status: string;
   createdAt: string;
 }
 
@@ -51,6 +74,8 @@ export interface VibeData {
   projects: Project[];
   chatHistory: Record<string, ChatMessage[]>; // projectId -> messages
   users: UserMember[];
+  tokenUsageLogs: TokenUsageLogItem[];
+  topupLogs: TopupLogItem[];
 }
 
 const DB_PATH = process.env.DATA_PATH
@@ -92,9 +117,12 @@ const DEFAULT_DATA: VibeData = {
       username: process.env.ADMIN_USERNAME || 'admin',
       password: process.env.ADMIN_PASSWORD || 'vibe2026',
       role: 'admin',
+      creditsBalance: 100.0,
       createdAt: new Date().toISOString(),
     },
   ],
+  tokenUsageLogs: [],
+  topupLogs: [],
 };
 
 export function getDb(): VibeData {
@@ -110,9 +138,19 @@ export function getDb(): VibeData {
     const raw = fs.readFileSync(DB_PATH, 'utf-8');
     const parsed = JSON.parse(raw);
     
-    // Migration fallback for users list
+    // Migration fallbacks
     if (!parsed.users || parsed.users.length === 0) {
       parsed.users = DEFAULT_DATA.users;
+    }
+    parsed.users = parsed.users.map((u: any) => ({
+      ...u,
+      creditsBalance: typeof u.creditsBalance === 'number' ? u.creditsBalance : 100.0,
+    }));
+    if (!parsed.tokenUsageLogs) {
+      parsed.tokenUsageLogs = [];
+    }
+    if (!parsed.topupLogs) {
+      parsed.topupLogs = [];
     }
     // Update OKMD base URL default if set to old default
     if (parsed.keys && parsed.keys.okmdBaseUrl === 'https://api.okmd.ai/v1') {
