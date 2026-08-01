@@ -20,16 +20,21 @@ export async function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get('vibe_session')?.value;
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const loginUrl = (host && !host.startsWith('0.0.0.0') && !host.startsWith('127.0.0.1'))
+    ? `${proto}://${host}/login`
+    : new URL('/login', req.url).toString();
 
   if (!token) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(loginUrl);
   }
 
   try {
     await jwtVerify(token, JWT_SECRET);
     return NextResponse.next();
   } catch (err) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(loginUrl);
   }
 }
 
