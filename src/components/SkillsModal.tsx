@@ -27,7 +27,7 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
   const [skills, setSkills] = useState<ActionSkill[]>([]);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'tools' | 'gdrive'>('gdrive');
+  const [activeTab, setActiveTab] = useState<'tools' | 'gdrive' | 'video'>('gdrive');
 
   useEffect(() => {
     if (isOpen) {
@@ -91,22 +91,34 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
         </div>
 
         {/* Navigation Tab Bar */}
-        <div className="flex border-b border-gray-800 bg-gray-950/60 px-6 pt-2 gap-2 text-xs">
+        <div className="flex border-b border-gray-800 bg-gray-950/60 px-6 pt-2 gap-2 text-xs overflow-x-auto">
           <button
             onClick={() => setActiveTab('gdrive')}
-            className={`pb-2.5 px-3 font-bold flex items-center gap-2 border-b-2 transition ${
+            className={`pb-2.5 px-3 font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
               activeTab === 'gdrive'
                 ? 'border-indigo-500 text-indigo-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
             <Globe className="w-4 h-4 text-emerald-400" />
-            <span>📖 คู่มือแชร์ Google Drive & ความปลอดภัย</span>
+            <span>📖 คู่มือแชร์ Google Drive</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('video')}
+            className={`pb-2.5 px-3 font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
+              activeTab === 'video'
+                ? 'border-indigo-500 text-indigo-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Video className="w-4 h-4 text-amber-400" />
+            <span>🎬 เทคนิค Video Hosting ฟรี (ประหยัดงบ)</span>
           </button>
 
           <button
             onClick={() => setActiveTab('tools')}
-            className={`pb-2.5 px-3 font-bold flex items-center gap-2 border-b-2 transition ${
+            className={`pb-2.5 px-3 font-bold flex items-center gap-2 border-b-2 transition shrink-0 ${
               activeTab === 'tools'
                 ? 'border-indigo-500 text-indigo-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -198,6 +210,56 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
                     </div>
                     <p className="text-[10px] text-gray-400 leading-relaxed">
                       ผลลัพธ์รูปภาพหรือวิดีโอที่สร้างเสร็จ จะมีปุ่มให้กดดาวน์โหลดลงคอมพิวเตอร์หรือมือถือของคุณโดยตรง <strong className="text-purple-300">(ลิงก์ดาวน์โหลดมีอายุ 7 วัน แนะนำให้กดเซฟลงเครื่องทันที)</strong> โดยไม่ต้องเปิดสิทธิ์เขียนลง Google Drive ของคุณให้เสี่ยงต่อความปลอดภัย
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'video' ? (
+            <div className="space-y-4">
+              {/* Feature Introduction Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/80 via-indigo-950/80 to-purple-950/80 border border-amber-500/40 flex items-start gap-3 shadow-lg">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/30 shrink-0">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>💡 เทคนิคประหยัดค่า Video Hosting สำหรับเว็บไซต์ & คอร์สเรียนออนไลน์</span>
+                    <span className="text-[9px] bg-amber-500 text-white px-1.5 py-0.2 rounded font-mono font-bold">
+                      ZERO COST
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-amber-200/90 mt-1 leading-relaxed">
+                    ประหยัดค่าบริการ Video Hosting รายเดือนไปได้ 3,000 - 10,000 บาท/เดือน โดยฝากไฟล์วิดีโอไว้บน YouTube Unlisted ร่วมกับระบบ Custom Player ซ่อนองค์ประกอบรกอัตโนมัติ!
+                  </p>
+                </div>
+              </div>
+
+              {/* How it works */}
+              <div className="p-4 rounded-2xl bg-gray-950 border border-gray-850 space-y-3">
+                <h4 className="font-bold text-xs text-amber-300 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-amber-400" />
+                  <span>วิธีตั้งค่า YouTube Unlisted + Custom Player (ใช้งานฟรี 100%):</span>
+                </h4>
+
+                <div className="space-y-2 text-[11px] text-gray-300">
+                  <div className="p-3 rounded-xl bg-gray-900 border border-gray-800 space-y-1">
+                    <div className="font-bold text-white flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center font-mono text-[10px]">1</span>
+                      <span>อัปโหลดวิดีโอเข้า YouTube เลือกสถานะ "ไม่เป็นสาธารณะ (Unlisted)"</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 pl-7">
+                      วิดีโอของคุณจะไม่ปรากฏในหน้าค้นหาของ YouTube และไม่โชว์สาธารณะ คนอื่นจะดูได้ต่อเมื่อมีลิงก์เท่านั้น
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-900 border border-gray-800 space-y-1">
+                    <div className="font-bold text-white flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center font-mono text-[10px]">2</span>
+                      <span>สั่ง AI สร้างเว็บ/คอร์สเรียน พร้อมระบบ Plyr.js Custom Player (ระดับ 2)</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 pl-7">
+                      ระบบ Vibe AI จะครอบตัวเล่น Plyr.js ทับวิดีโอ YouTube ให้อัตโนมัติ: <strong className="text-amber-300">ซ่อนโลโก้ YouTube 100%, บล็อกปุ่มกดหลุดช่อง, เปิดซับภาษาไทย (CC)</strong> และปรับความเร็วคลิปสไตล์เว็บเรียนชั้นนำ!
                     </p>
                   </div>
                 </div>
