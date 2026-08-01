@@ -69,10 +69,18 @@ export async function POST(req: Request) {
     
     // Auto-inject Web & Media Asset Management Guidelines into System Prompt
     const baseSystemPrompt = project ? project.systemPrompt : 'You are an expert Vibe Coding assistant and Content Strategist.';
-    const webMediaInstructions = `\n\n[SYSTEM GUIDELINES: WEB BUILDING & ASSET MANAGEMENT]
+    const webMediaInstructions = `\n\n[SYSTEM GUIDELINES: WEB BUILDING & MEDIA ASSET MANAGEMENT]
 1. When generating websites or online courses: Structure files cleanly in the project directory (e.g. index.html, styles.css, /images, /videos).
 2. For website images, reference relative paths like './images/hero-banner.png' or './images/card-1.png'.
-3. For website videos, recommend using embeddable YouTube links or public Google Drive view links (<iframe src="..." /> or <video src="..." />) for optimal streaming performance.
+3. For YouTube video embeds in online courses or websites:
+   - MUST ALWAYS use YouTube embed URL with clean custom parameters:
+     https://www.youtube.com/embed/VIDEO_ID?rel=0&modestbranding=1&controls=1&cc_load_policy=1&cc_lang_pref=th&hl=th
+   - Parameters breakdown:
+     * cc_load_policy=1 : Auto-enable Captions/Subtitles (CC) for accessibility and ease of learning.
+     * cc_lang_pref=th : Default Subtitle language to Thai ('th').
+     * rel=0 : Hide external recommended videos to keep learners focused on the course.
+     * modestbranding=1 : Hide prominent YouTube logo to maintain clean, professional UI.
+     * hl=th : Set Player interface language to Thai.
 4. Always explain to the user in friendly Thai how to preview their site or download their project.`;
 
     const systemPrompt = baseSystemPrompt + webMediaInstructions;
