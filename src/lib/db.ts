@@ -88,6 +88,8 @@ export interface VibeData {
     username: string;
     role: 'admin' | 'member';
     creditsBalance: number;
+    googleConnected?: boolean;
+    googleEmail?: string;
   };
 }
 

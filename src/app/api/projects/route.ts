@@ -19,6 +19,8 @@ export async function GET() {
           username: currentUser.username,
           role: currentUser.role,
           creditsBalance: currentUser.creditsBalance,
+          googleConnected: currentUser.user?.googleConnected,
+          googleEmail: currentUser.user?.googleEmail,
         },
       });
     }
@@ -63,6 +65,8 @@ export async function GET() {
         username: currentUser.username,
         role: currentUser.role,
         creditsBalance: currentUser.creditsBalance,
+        googleConnected: currentUser.user?.googleConnected,
+        googleEmail: currentUser.user?.googleEmail,
       },
     });
   } catch (err: any) {
