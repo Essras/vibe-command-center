@@ -66,7 +66,16 @@ export async function POST(req: Request) {
     const selectedModelId = routeInfo.selectedModelId;
     const db = getDb();
     const project = db.projects.find((p) => p.id === targetProjectId);
-    const systemPrompt = project ? project.systemPrompt : undefined;
+    
+    // Auto-inject Web & Media Asset Management Guidelines into System Prompt
+    const baseSystemPrompt = project ? project.systemPrompt : 'You are an expert Vibe Coding assistant and Content Strategist.';
+    const webMediaInstructions = `\n\n[SYSTEM GUIDELINES: WEB BUILDING & ASSET MANAGEMENT]
+1. When generating websites or online courses: Structure files cleanly in the project directory (e.g. index.html, styles.css, /images, /videos).
+2. For website images, reference relative paths like './images/hero-banner.png' or './images/card-1.png'.
+3. For website videos, recommend using embeddable YouTube links or public Google Drive view links (<iframe src="..." /> or <video src="..." />) for optimal streaming performance.
+4. Always explain to the user in friendly Thai how to preview their site or download their project.`;
+
+    const systemPrompt = baseSystemPrompt + webMediaInstructions;
 
     const formattedMessages = messages.length > 0
       ? messages
