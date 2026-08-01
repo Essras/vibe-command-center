@@ -184,20 +184,20 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
                   <div className="p-3 rounded-xl bg-gray-900 border border-emerald-500/30 space-y-1">
                     <div className="font-bold text-emerald-300 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>🟢 Viewer Access Only (สิทธิ์อ่านเท่านั้น)</span>
+                      <span>🟢 Viewer Access Only (สิทธิ์อ่านอย่างเดียว ปลอดภัย 100%)</span>
                     </div>
                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                      AI และระบบจะเข้าถึงไฟล์เฉพาะในสิทธิ์ **"ผู้ดู (Viewer)"** เพื่ออ่านเนื้อหาหรือประมวลผลเท่านั้น **ไม่สามารถแก้ไข เปลี่ยนแปลง หรือลบไฟล์** ใดๆ ใน Google Drive ของคุณได้ 100%
+                      สำหรับการวางลิงก์ในแชท ระบบจะอ่านข้อมูลเฉพาะสิทธิ์ <strong>"ผู้ดู (Viewer)"</strong> เท่านั้น <strong>ไม่สามารถแก้ไขหรือลบไฟล์</strong> ใน Google Drive ของคุณได้ 100% โดยไฟล์ผลลัพธ์ (รูปภาพ/วิดีโอ) สามารถกดดาวน์โหลดลงเครื่องได้ทันที
                     </p>
                   </div>
 
                   <div className="p-3 rounded-xl bg-gray-900 border border-purple-500/30 space-y-1">
                     <div className="font-bold text-purple-300 flex items-center gap-1.5">
                       <Lock className="w-4 h-4 text-purple-400" />
-                      <span>🔒 Zero Disk Retention (ไม่บันทึกค้างถาวร)</span>
+                      <span>🔒 Direct Download Output (ดาวน์โหลดตรงลงเครื่อง)</span>
                     </div>
                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                      เนื้อหาและลิงก์ Google Drive ที่คุณวางจะถูกสกัดคำตอบในเซสชันแชทส่วนตัวของคุณเท่านั้น **ไม่มีการนำลิงก์ไปเปิดเผยต่อสาธารณะ** และไม่มีการบันทึกไฟล์วิดีโอ/ไฟล์ใหญ่ค้างไว้ในดิสก์ VPS
+                      ผลลัพธ์รูปภาพหรือวิดีโอที่สร้างเสร็จ จะมีปุ่มให้กดดาวน์โหลดลงคอมพิวเตอร์หรือมือถือของคุณโดยตรง โดยไม่ต้องเปิดสิทธิ์เขียนลง Google Drive ของคุณให้เสี่ยงต่อความปลอดภัย
                     </p>
                   </div>
                 </div>
