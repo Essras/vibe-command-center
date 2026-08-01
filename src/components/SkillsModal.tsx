@@ -194,10 +194,10 @@ export const SkillsModal: React.FC<SkillsModalProps> = ({ isOpen, onClose }) => 
                   <div className="p-3 rounded-xl bg-gray-900 border border-purple-500/30 space-y-1">
                     <div className="font-bold text-purple-300 flex items-center gap-1.5">
                       <Lock className="w-4 h-4 text-purple-400" />
-                      <span>🔒 Direct Download Output (ดาวน์โหลดตรงลงเครื่อง)</span>
+                      <span>🔒 Direct Download Output (ดาวน์โหลดตรง - ลิงก์มีอายุ 7 วัน)</span>
                     </div>
                     <p className="text-[10px] text-gray-400 leading-relaxed">
-                      ผลลัพธ์รูปภาพหรือวิดีโอที่สร้างเสร็จ จะมีปุ่มให้กดดาวน์โหลดลงคอมพิวเตอร์หรือมือถือของคุณโดยตรง โดยไม่ต้องเปิดสิทธิ์เขียนลง Google Drive ของคุณให้เสี่ยงต่อความปลอดภัย
+                      ผลลัพธ์รูปภาพหรือวิดีโอที่สร้างเสร็จ จะมีปุ่มให้กดดาวน์โหลดลงคอมพิวเตอร์หรือมือถือของคุณโดยตรง <strong className="text-purple-300">(ลิงก์ดาวน์โหลดมีอายุ 7 วัน แนะนำให้กดเซฟลงเครื่องทันที)</strong> โดยไม่ต้องเปิดสิทธิ์เขียนลง Google Drive ของคุณให้เสี่ยงต่อความปลอดภัย
                     </p>
                   </div>
                 </div>
