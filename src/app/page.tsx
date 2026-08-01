@@ -281,6 +281,7 @@ export default function DashboardPage() {
           autoFallback429={data.autoFallback429}
           favoriteModels={data.favoriteModels}
           onSaveSettings={handleSaveSettings}
+          onOpenDashboard={() => setIsDashboardOpen(true)}
         />
       )}
 

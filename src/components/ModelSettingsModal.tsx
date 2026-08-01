@@ -15,6 +15,7 @@ import {
   Plus,
   Trash2,
   Search,
+  BarChart3,
 } from 'lucide-react';
 import { FavoriteModel, ProviderKeys } from '@/lib/db';
 
@@ -29,6 +30,7 @@ interface ModelSettingsModalProps {
     newAutoFallback: boolean,
     newFavorites: FavoriteModel[]
   ) => void;
+  onOpenDashboard?: () => void;
 }
 
 export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
@@ -38,6 +40,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   autoFallback429,
   favoriteModels,
   onSaveSettings,
+  onOpenDashboard,
 }) => {
   const [selectedProvider, setSelectedProvider] = useState<
     'gemini' | 'openai' | 'claude' | 'openrouter' | 'okmd'
@@ -206,6 +209,38 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-gray-200">
+          {/* Admin Analytics & Token Metering Dashboard Banner */}
+          {onOpenDashboard && (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-indigo-950/90 to-purple-950/90 border border-purple-500/50 flex items-center justify-between shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-600/30 text-purple-300 border border-purple-400/30">
+                  <BarChart3 className="w-5 h-5 text-purple-300" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Admin Token Metering & Analytics Dashboard</span>
+                    <span className="text-[9px] bg-purple-500/30 text-purple-200 px-1.5 py-0.2 rounded border border-purple-400/40 font-mono">
+                      NEW
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-purple-200/90 mt-0.5">
+                    ดูตาราง Token ล่าสุด, สถิติแยกตามโมเดล, ต้นทุน $USD และปรับยอด Credits สมาชิก
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenDashboard();
+                }}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition shrink-0 cursor-pointer"
+              >
+                📊 เปิด Dashboard
+              </button>
+            </div>
+          )}
+
           {/* 1. Provider Selector */}
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-2">
