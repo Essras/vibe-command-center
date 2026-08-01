@@ -14,6 +14,7 @@ import {
   Zap,
   Users,
   ChevronDown,
+  BarChart3,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -27,6 +28,7 @@ interface NavbarProps {
   onOpenSettings: () => void;
   onOpenSkills: () => void;
   onOpenUsers: () => void;
+  onOpenDashboard?: () => void;
   activeTab: 'chat' | 'editor';
   onTabChange: (tab: 'chat' | 'editor') => void;
   onLogout: () => void;
@@ -44,6 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onOpenSkills,
   onOpenUsers,
+  onOpenDashboard,
   activeTab,
   onTabChange,
   onLogout,
@@ -182,6 +185,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden md:inline">Editor</span>
           </button>
         </div>
+
+        {/* Admin Analytics & Token Metering Dashboard */}
+        {onOpenDashboard && (
+          <button
+            onClick={onOpenDashboard}
+            className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800 hover:to-indigo-800 text-purple-200 border border-purple-500/40 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+            title="ดู Dashboard โควต้าและปริมาณ Token Metering"
+          >
+            <BarChart3 className="w-4 h-4 text-purple-300" />
+            <span className="hidden lg:inline">Dashboard</span>
+          </button>
+        )}
 
         {/* Member Management */}
         <button
