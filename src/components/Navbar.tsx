@@ -122,39 +122,60 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Center: Model Selector Dropdown Grouped by Provider with Green/Red Indicators */}
+      {/* Center: Model Selector Dropdown */}
       <div className="flex items-center justify-center px-2 min-w-0 shrink">
         <div className="relative flex items-center bg-gray-900/90 border border-gray-800 rounded-xl px-2.5 py-1.5 hover:border-indigo-500/50 transition">
           <span
-            className={`w-2.5 h-2.5 rounded-full mr-1.5 shrink-0 ${
-              activeReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse' : 'bg-red-500'
-            }`}
-            title={activeReady ? 'โมเดลพร้อมใช้งาน (🟢 Connected)' : 'ยังไม่ได้ตั้งค่า API Key (🔴 Missing Key)'}
+            className="w-2.5 h-2.5 rounded-full mr-1.5 shrink-0 bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse"
+            title="ระบบ Smart Auto Router พร้อมใช้งาน"
           />
           <span className="text-[11px] text-gray-400 font-medium mr-1 hidden lg:inline-block whitespace-nowrap">
-            โมเดล:
+            โหมด AI:
           </span>
           <select
             value={activeModelId}
             onChange={(e) => onSelectModel(e.target.value)}
-            className="bg-transparent text-gray-100 font-bold text-xs focus:outline-none cursor-pointer pr-5 appearance-none max-w-[120px] xs:max-w-[160px] sm:max-w-[220px] truncate"
+            className="bg-transparent text-gray-100 font-bold text-xs focus:outline-none cursor-pointer pr-5 appearance-none max-w-[140px] xs:max-w-[180px] sm:max-w-[240px] truncate"
           >
-            {Object.entries(providerGroups).map(([providerName, models]) => (
-              <optgroup
-                key={providerName}
-                label={`── ${providerName} MODELS ──`}
-                className="bg-gray-900 text-indigo-300 font-semibold"
-              >
-                {models.map((m) => {
-                  const ready = isKeyConfigured(m.provider);
-                  return (
-                    <option key={m.id} value={m.id} className="bg-gray-900 text-gray-100 font-normal">
-                      {ready ? '🟢' : '🔴'} {m.name} {ready ? '' : '(ยังไม่ใส่คีย์)'}
-                    </option>
-                  );
-                })}
+            <option value="auto" className="bg-gray-900 text-indigo-300 font-bold">
+              ✨ Auto (ระบบเลือกให้อัตโนมัติ)
+            </option>
+            
+            {currentUser?.role === 'admin' ? (
+              // Admin: Can view raw models & categories
+              Object.entries(providerGroups).map(([providerName, models]) => (
+                <optgroup
+                  key={providerName}
+                  label={`── ${providerName} MODELS ──`}
+                  className="bg-gray-900 text-indigo-300 font-semibold"
+                >
+                  {models.map((m) => {
+                    const ready = isKeyConfigured(m.provider);
+                    return (
+                      <option key={m.id} value={m.id} className="bg-gray-900 text-gray-100 font-normal">
+                        {ready ? '🟢' : '🔴'} {m.name} {ready ? '' : '(ยังไม่ใส่คีย์)'}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              ))
+            ) : (
+              // Regular Members: Clean Smart Categories Only (No Raw Provider Names)
+              <optgroup label="── หมวดหมู่โมเดลสมองกล ──" className="bg-gray-900 text-indigo-300 font-semibold">
+                <option value="fast" className="bg-gray-900 text-gray-100 font-normal">
+                  ⚡ FAST MODEL (โมเดลความเร็วสูง)
+                </option>
+                <option value="balanced" className="bg-gray-900 text-gray-100 font-normal">
+                  ⚖️ BALANCED MODEL (โมเดลสมดุลความเร็ว-คุณภาพ)
+                </option>
+                <option value="reasoning" className="bg-gray-900 text-gray-100 font-normal">
+                  🧠 REASONING MODEL (โมเดลวิเคราะห์เชิงลึก)
+                </option>
+                <option value="vision" className="bg-gray-900 text-gray-100 font-normal">
+                  👁️ VISION MODEL (โมเดลอ่านและวิเคราะห์รูปภาพ)
+                </option>
               </optgroup>
-            ))}
+            )}
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2 pointer-events-none shrink-0" />
         </div>
@@ -233,6 +254,25 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Wrench className="w-4 h-4 text-purple-400" />
         </button>
+
+        {/* Current Logged In User Profile Badge */}
+        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-gray-900 border border-gray-800 text-xs shrink-0 shadow-sm">
+          <div className="w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-bold text-[10px]">
+            {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <span className="font-bold text-gray-200 hidden sm:inline truncate max-w-[100px]">
+            {currentUser?.username || 'User'}
+          </span>
+          <span
+            className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase font-mono ${
+              currentUser?.role === 'admin'
+                ? 'bg-purple-950 text-purple-300 border border-purple-800/40'
+                : 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
+            }`}
+          >
+            {currentUser?.role || 'member'}
+          </span>
+        </div>
 
         {/* Logout */}
         <button
