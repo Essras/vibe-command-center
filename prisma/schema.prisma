@@ -1,0 +1,104 @@
+// Prisma Schema for Vibe App Multi-Tenant & Credit Metering System
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String          @id @default(uuid())
+  username       String          @unique
+  email          String?         @unique
+  password       String
+  role           String          @default("member")
+  creditsBalance Float           @default(100.0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  workspaces     Workspace[]
+  projects       Project[]
+  projectFiles   ProjectFile[]
+  tokenUsageLogs TokenUsageLog[]
+  topupLogs      TopupLog[]
+}
+
+model Workspace {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects    Project[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Project {
+  id             String          @id @default(uuid())
+  name           String
+  description    String?
+  systemPrompt   String?
+  vpsFolder      String?
+  workspaceId    String?
+  workspace      Workspace?      @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files          ProjectFile[]
+  tokenUsageLogs TokenUsageLog[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+model ProjectFile {
+  id        String   @id @default(uuid())
+  path      String
+  content   String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, path])
+  @@index([userId])
+  @@index([projectId])
+}
+
+model TokenUsageLog {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId        String?
+  project          Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  modelUsed        String
+  promptTokens     Int
+  completionTokens Int
+  creditsDeducted  Float
+  timestamp        DateTime @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model TopupLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount         Float
+  creditsAdded   Float
+  paymentGateway String
+  transactionId  String   @unique
+  status         String   @default("SUCCESS")
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+}

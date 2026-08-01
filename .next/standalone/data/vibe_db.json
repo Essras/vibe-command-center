@@ -1,0 +1,50 @@
+{
+  "keys": {
+    "geminiApiKey": "",
+    "openaiApiKey": "",
+    "claudeApiKey": "",
+    "openrouterApiKey": "",
+    "okmdApiKey": "",
+    "okmdBaseUrl": "https://api.okmd.ai/v1"
+  },
+  "autoFallback429": true,
+  "favoriteModels": [
+    {
+      "id": "gemini-2.0-flash",
+      "name": "Gemini 2.0 Flash",
+      "provider": "gemini"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "provider": "gemini"
+    },
+    {
+      "id": "gemini-1.5-pro",
+      "name": "Gemini 1.5 Pro",
+      "provider": "gemini"
+    },
+    {
+      "id": "claude-3-5-sonnet-20241022",
+      "name": "Claude 3.5 Sonnet",
+      "provider": "claude"
+    },
+    {
+      "id": "gpt-4o",
+      "name": "OpenAI GPT-4o",
+      "provider": "openai"
+    }
+  ],
+  "activeModelId": "gemini-2.0-flash",
+  "projects": [
+    {
+      "id": "default-workspace",
+      "name": "General Vibe Workspace",
+      "description": "Default project workspace for Vibe Coding & Content AI",
+      "systemPrompt": "You are an expert Vibe Coding assistant and Content Strategist. Always provide clean code, clear explanations in Thai, and actionable advice.",
+      "vpsFolder": "./workspace",
+      "createdAt": "2026-08-01T09:11:22.075Z"
+    }
+  ],
+  "chatHistory": {}
+}
