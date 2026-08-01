@@ -164,7 +164,11 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const handleFetchQuota = async () => {
     setQuotaResult({ loading: true });
     try {
-      const res = await fetch('/api/models/quota');
+      const res = await fetch('/api/models/quota', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: formKeys }),
+      });
       const data = await res.json();
       setQuotaResult({ loading: false, data });
     } catch (err: any) {
