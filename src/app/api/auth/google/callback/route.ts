@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getDb, saveDb, UserMember } from '@/lib/db';
-import { createToken, ADMIN_USERNAME } from '@/lib/auth';
+import { createToken, ADMIN_USERNAME, getAppOrigin } from '@/lib/auth';
 
 export async function GET(req: Request) {
+  const origin = getAppOrigin(req);
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
 
   if (error || !code) {
-    return NextResponse.redirect(new URL('/login?error=GoogleAuthFailed', req.url));
+    return NextResponse.redirect(`${origin}/login?error=GoogleAuthFailed`);
   }
 
   const db = getDb();
   const clientId = process.env.GOOGLE_CLIENT_ID || db.keys?.googleClientId || '';
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || db.keys?.googleClientSecret || '';
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://vibe.zodiacpsych.com/api/auth/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`;
 
   try {
     // 1. Exchange authorization code for Google Access Tokens
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
       console.error('Google Token Exchange Error:', errBody);
-      return NextResponse.redirect(new URL('/login?error=TokenExchangeFailed', req.url));
+      return NextResponse.redirect(`${origin}/login?error=TokenExchangeFailed`);
     }
 
     const tokenData = await tokenRes.json();
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
     });
 
     if (!userRes.ok) {
-      return NextResponse.redirect(new URL('/login?error=FetchProfileFailed', req.url));
+      return NextResponse.redirect(`${origin}/login?error=FetchProfileFailed`);
     }
 
     const googleUser = await userRes.json();
@@ -60,22 +61,41 @@ export async function GET(req: Request) {
     const isEnvAdmin = username === ADMIN_USERNAME || email === ADMIN_USERNAME;
     const userRole = isEnvAdmin ? 'admin' : 'member';
 
+    let user: UserMember;
+
     if (existingUserIndex === -1) {
+      // New users via Google default to 'pending' unless they are admin
+      const initialStatus = isEnvAdmin ? 'approved' : 'pending';
       const newUser: UserMember = {
         id: 'usr-' + Date.now(),
         username: username,
         password: 'google_oauth_user',
         role: userRole,
+        status: initialStatus,
         creditsBalance: userRole === 'admin' ? 99999 : 100.0,
         createdAt: new Date().toISOString(),
       };
       db.users.push(newUser);
       saveDb(db);
+      user = newUser;
+    } else {
+      user = db.users[existingUserIndex];
     }
 
-    // 4. Create JWT session token
+    // 4. Check approval status
+    if (user.status === 'pending') {
+      const pendingMsg = encodeURIComponent('บัญชี Google ของคุณสมัครเรียบร้อยแล้ว แต่อยู่ระหว่างรอ Admin อนุมัติการเข้าใช้งาน');
+      return NextResponse.redirect(`${origin}/login?error=${pendingMsg}`);
+    }
+
+    if (user.status === 'rejected') {
+      const rejectedMsg = encodeURIComponent('บัญชีของคุณถูกปฏิเสธการเข้าใช้งานโดย Admin');
+      return NextResponse.redirect(`${origin}/login?error=${rejectedMsg}`);
+    }
+
+    // 5. Create JWT session token for approved users
     const token = await createToken({ username, role: userRole });
-    const response = NextResponse.redirect(new URL('/', req.url));
+    const response = NextResponse.redirect(`${origin}/`);
 
     response.cookies.set('vibe_session', token, {
       httpOnly: true,
@@ -88,6 +108,6 @@ export async function GET(req: Request) {
     return response;
   } catch (err: any) {
     console.error('Google Callback Error:', err);
-    return NextResponse.redirect(new URL('/login?error=' + encodeURIComponent(err.message), req.url));
+    return NextResponse.redirect(`${origin}/login?error=` + encodeURIComponent(err.message));
   }
 }

@@ -33,6 +33,7 @@ export interface UserMember {
   username: string;
   password: string;
   role: 'admin' | 'member';
+  status?: 'approved' | 'pending' | 'rejected';
   creditsBalance: number;
   createdAt: string;
 }
@@ -127,6 +128,7 @@ const DEFAULT_DATA: VibeData = {
       username: process.env.ADMIN_USERNAME || 'admin',
       password: process.env.ADMIN_PASSWORD || 'vibe2026',
       role: 'admin',
+      status: 'approved',
       creditsBalance: 100.0,
       createdAt: new Date().toISOString(),
     },
@@ -165,6 +167,7 @@ export function getDb(): VibeData {
     }
     parsed.users = parsed.users.map((u: any) => ({
       ...u,
+      status: u.status || 'approved',
       creditsBalance: typeof u.creditsBalance === 'number' ? u.creditsBalance : 100.0,
     }));
     if (!parsed.tokenUsageLogs) parsed.tokenUsageLogs = [];

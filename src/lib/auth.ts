@@ -52,3 +52,13 @@ export async function isAuthenticated() {
   const user = await getCurrentUser();
   return !!user;
 }
+
+export function getAppOrigin(req: Request): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+  const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+
+  if (host && !host.startsWith('0.0.0.0') && !host.startsWith('127.0.0.1') && !host.includes('web-ui')) {
+    return `${proto}://${host}`;
+  }
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://vibe.zodiacpsych.com';
+}

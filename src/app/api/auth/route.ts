@@ -15,6 +15,21 @@ export async function POST(req: Request) {
     // Fallback check against env variables
     const isEnvAdmin = username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
 
+    if (foundUser) {
+      if (foundUser.status === 'pending') {
+        return NextResponse.json(
+          { success: false, error: 'บัญชีของคุณอยู่ระหว่างรอการอนุมัติจาก Admin' },
+          { status: 403 }
+        );
+      }
+      if (foundUser.status === 'rejected') {
+        return NextResponse.json(
+          { success: false, error: 'บัญชีของคุณถูกปฏิเสธการเข้าใช้งานโดย Admin' },
+          { status: 403 }
+        );
+      }
+    }
+
     if (foundUser || isEnvAdmin) {
       const token = await createToken({ username });
       const res = NextResponse.json({ success: true, username });

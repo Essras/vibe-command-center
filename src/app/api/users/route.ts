@@ -25,6 +25,7 @@ export async function POST(req: Request) {
         username: user.username.trim(),
         password: user.password,
         role: user.role || 'member',
+        status: user.status || 'approved',
         creditsBalance: typeof user.creditsBalance === 'number' ? user.creditsBalance : 100.0,
         createdAt: new Date().toISOString(),
       };
@@ -33,11 +34,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, user: newUser });
     }
 
+    if (action === 'approve') {
+      const idx = db.users.findIndex((u) => u.id === user.id);
+      if (idx !== -1) {
+        db.users[idx].status = 'approved';
+        saveDb(db);
+        return NextResponse.json({ success: true, user: db.users[idx] });
+      }
+      return NextResponse.json({ error: 'ไม่พบผู้ใช้ที่ต้องการอนุมัติ' }, { status: 404 });
+    }
+
+    if (action === 'reject') {
+      const idx = db.users.findIndex((u) => u.id === user.id);
+      if (idx !== -1) {
+        db.users[idx].status = 'rejected';
+        saveDb(db);
+        return NextResponse.json({ success: true, user: db.users[idx] });
+      }
+      return NextResponse.json({ error: 'ไม่พบผู้ใช้ที่ต้องการปฏิเสธ' }, { status: 404 });
+    }
+
     if (action === 'update') {
       const idx = db.users.findIndex((u) => u.id === user.id);
       if (idx !== -1) {
         if (user.password) db.users[idx].password = user.password;
         if (user.role) db.users[idx].role = user.role;
+        if (user.status) db.users[idx].status = user.status;
         saveDb(db);
         return NextResponse.json({ success: true, user: db.users[idx] });
       }

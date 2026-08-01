@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getAppOrigin } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: Request) {
   const db = getDb();
   const clientId = process.env.GOOGLE_CLIENT_ID || db.keys?.googleClientId || '';
+  const origin = getAppOrigin(req);
 
   if (!clientId) {
-    return NextResponse.json(
-      { error: 'ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID ในระบบ' },
-      { status: 400 }
+    return NextResponse.redirect(
+      `${origin}/login?error=` + encodeURIComponent('ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID ในระบบ (กรุณาตั้งค่า GOOGLE_CLIENT_ID ในหน้า Settings หรือไฟล์ .env)')
     );
   }
 
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://vibe.zodiacpsych.com/api/auth/google/callback';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${origin}/api/auth/google/callback`;
 
   const scopes = [
     'openid',
