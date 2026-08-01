@@ -17,6 +17,7 @@ import {
   Bot,
   User,
   RefreshCw,
+  Globe,
 } from 'lucide-react';
 import { FavoriteModel, Project } from '@/lib/db';
 
@@ -89,6 +90,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData?.getData('text/plain');
+    if (pastedText && (pastedText.includes('drive.google.com') || pastedText.includes('docs.google.com'))) {
+      const gdriveMatch = pastedText.match(/(?:drive|docs)\.google\.com\/(?:file\/d\/|document\/d\/|spreadsheets\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
+      if (gdriveMatch) {
+        const fileId = gdriveMatch[1];
+        const fileName = `Google Drive File (${fileId.slice(0, 8)}...)`;
+        setAttachments((prev) => [
+          ...prev,
+          {
+            name: fileName,
+            type: 'application/gdrive',
+            content: pastedText.trim(),
+          },
+        ]);
+      }
+    }
+
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -352,10 +370,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="flex flex-wrap gap-2 mb-2">
               {attachments.map((att, i) => {
                 const isImage = att.type?.startsWith('image/') || att.content?.startsWith('data:image/');
+                const isGDrive = att.type === 'application/gdrive';
                 return (
                   <div
                     key={i}
-                    className="flex items-center space-x-1.5 bg-gray-800/90 border border-gray-700 text-xs text-gray-200 px-2.5 py-1 rounded-xl shadow-sm"
+                    className={`flex items-center space-x-1.5 border text-xs px-2.5 py-1 rounded-xl shadow-sm ${
+                      isGDrive
+                        ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
+                        : 'bg-gray-800/90 border-gray-700 text-gray-200'
+                    }`}
                   >
                     {isImage ? (
                       <img
@@ -363,10 +386,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         alt={att.name}
                         className="w-7 h-7 object-cover rounded-lg border border-indigo-500/50"
                       />
+                    ) : isGDrive ? (
+                      <Globe className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
                     ) : (
                       <FileText className="w-3.5 h-3.5 text-indigo-400" />
                     )}
-                    <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                    <span className="truncate max-w-[170px] font-medium">{att.name}</span>
                     <button
                       type="button"
                       onClick={() => removeAttachment(i)}
