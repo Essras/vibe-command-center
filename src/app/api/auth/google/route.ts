@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     `&response_type=code` +
     `&scope=${encodeURIComponent(scopes)}` +
     `&access_type=offline` +
-    `&prompt=consent`;
+    `&prompt=select_account`;
 
   return NextResponse.redirect(googleAuthUrl);
 }
