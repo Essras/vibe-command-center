@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getDb, saveDb, UserMember } from '@/lib/db';
 import { createToken, ADMIN_USERNAME, getAppOrigin, getCurrentUser } from '@/lib/auth';
 
@@ -117,8 +118,17 @@ export async function GET(req: Request) {
 
     // 5. Create JWT session token for approved users using the bound user's username
     const token = await createToken({ username: user.username, role: user.role });
-    const response = NextResponse.redirect(`${origin}/`);
 
+    const cookieStore = cookies();
+    cookieStore.set('vibe_session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    const response = NextResponse.redirect(`${origin}/`);
     response.cookies.set('vibe_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
