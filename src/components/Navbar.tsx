@@ -15,6 +15,7 @@ import {
   Users,
   ChevronDown,
   BarChart3,
+  Coins,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -34,6 +35,7 @@ interface NavbarProps {
   onLogout: () => void;
   keys?: ProviderKeys;
   currentUser?: { username: string; role: 'admin' | 'member'; creditsBalance: number };
+  onOpenMemberUsage?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   keys,
   currentUser,
+  onOpenMemberUsage,
 }) => {
   const activeModel = favoriteModels.find((m) => m.id === activeModelId);
 
@@ -255,23 +258,36 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Wrench className="w-4 h-4 text-purple-400" />
         </button>
 
-        {/* Current Logged In User Profile Badge */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-gray-900 border border-gray-800 text-xs shrink-0 shadow-sm">
-          <div className="w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-bold text-[10px]">
-            {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+        {/* Current Logged In User Profile Badge & Usage Button */}
+        <div className="flex items-center space-x-1.5 shrink-0">
+          {onOpenMemberUsage && (
+            <button
+              onClick={onOpenMemberUsage}
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-200 border border-emerald-500/40 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+              title="ดูสถิติการใช้งาน Token ส่วนตัว & เติมเงิน Credits"
+            >
+              <Coins className="w-4 h-4 text-emerald-400" />
+              <span className="hidden lg:inline">สถิติ & เติมเงิน</span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-gray-900 border border-gray-800 text-xs shrink-0 shadow-sm">
+            <div className="w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-bold text-[10px]">
+              {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <span className="font-bold text-gray-200 hidden sm:inline truncate max-w-[100px]">
+              {currentUser?.username || 'User'}
+            </span>
+            <span
+              className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase font-mono ${
+                currentUser?.role === 'admin'
+                  ? 'bg-purple-950 text-purple-300 border border-purple-800/40'
+                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
+              }`}
+            >
+              {currentUser?.role || 'member'}
+            </span>
           </div>
-          <span className="font-bold text-gray-200 hidden sm:inline truncate max-w-[100px]">
-            {currentUser?.username || 'User'}
-          </span>
-          <span
-            className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase font-mono ${
-              currentUser?.role === 'admin'
-                ? 'bg-purple-950 text-purple-300 border border-purple-800/40'
-                : 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
-            }`}
-          >
-            {currentUser?.role || 'member'}
-          </span>
         </div>
 
         {/* Logout */}

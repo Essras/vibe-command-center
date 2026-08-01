@@ -10,6 +10,7 @@ import { ProjectModal } from '@/components/ProjectModal';
 import { SkillsModal } from '@/components/SkillsModal';
 import { UserManagementModal } from '@/components/UserManagementModal';
 import { AdminDashboardModal } from '@/components/AdminDashboardModal';
+import { MemberUsageModal } from '@/components/MemberUsageModal';
 import { Project, FavoriteModel, ProviderKeys, VibeData } from '@/lib/db';
 
 export default function DashboardPage() {
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isMemberUsageOpen, setIsMemberUsageOpen] = useState(false);
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessageUI[]>([]);
@@ -254,6 +256,7 @@ export default function DashboardPage() {
         onLogout={handleLogout}
         keys={data?.keys}
         currentUser={data?.currentUser}
+        onOpenMemberUsage={() => setIsMemberUsageOpen(true)}
       />
 
       <main className="flex-1 flex flex-col">
@@ -311,6 +314,12 @@ export default function DashboardPage() {
       <AdminDashboardModal
         isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
+      />
+
+      <MemberUsageModal
+        isOpen={isMemberUsageOpen}
+        onClose={() => setIsMemberUsageOpen(false)}
+        currentUser={data?.currentUser}
       />
     </div>
   );
