@@ -18,6 +18,7 @@ export interface ProviderKeys {
 
 export interface Project {
   id: string;
+  userId?: string; // Tenant Owner Username
   name: string;
   description: string;
   systemPrompt: string; // Personal memory / GEMINI.md
@@ -76,6 +77,11 @@ export interface VibeData {
   users: UserMember[];
   tokenUsageLogs: TokenUsageLogItem[];
   topupLogs: TopupLogItem[];
+  currentUser?: {
+    username: string;
+    role: 'admin' | 'member';
+    creditsBalance: number;
+  };
 }
 
 const DB_PATH = process.env.DATA_PATH

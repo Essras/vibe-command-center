@@ -33,6 +33,7 @@ interface NavbarProps {
   onTabChange: (tab: 'chat' | 'editor') => void;
   onLogout: () => void;
   keys?: ProviderKeys;
+  currentUser?: { username: string; role: 'admin' | 'member'; creditsBalance: number };
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -51,6 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   onLogout,
   keys,
+  currentUser,
 }) => {
   const activeModel = favoriteModels.find((m) => m.id === activeModelId);
 
@@ -186,27 +188,42 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Admin Analytics & Token Metering Dashboard */}
-        {onOpenDashboard && (
-          <button
-            onClick={onOpenDashboard}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800 hover:to-indigo-800 text-purple-200 border border-purple-500/40 transition flex items-center gap-1 text-xs font-bold shadow-sm"
-            title="ดู Dashboard โควต้าและปริมาณ Token Metering"
-          >
-            <BarChart3 className="w-4 h-4 text-purple-300" />
-            <span className="hidden lg:inline">Dashboard</span>
-          </button>
-        )}
+        {/* Admin-only controls */}
+        {currentUser?.role === 'admin' && (
+          <>
+            {/* Admin Analytics & Token Metering Dashboard */}
+            {onOpenDashboard && (
+              <button
+                onClick={onOpenDashboard}
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800 hover:to-indigo-800 text-purple-200 border border-purple-500/40 transition flex items-center gap-1 text-xs font-bold shadow-sm"
+                title="ดู Dashboard โควต้าและปริมาณ Token Metering"
+              >
+                <BarChart3 className="w-4 h-4 text-purple-300" />
+                <span className="hidden lg:inline">Dashboard</span>
+              </button>
+            )}
 
-        {/* Member Management */}
-        <button
-          onClick={onOpenUsers}
-          className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800 transition flex items-center gap-1 text-xs font-semibold"
-          title="จัดการสมาชิก"
-        >
-          <Users className="w-4 h-4 text-emerald-400" />
-          <span className="hidden lg:inline">สมาชิก</span>
-        </button>
+            {/* Member Management */}
+            <button
+              onClick={onOpenUsers}
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800 transition flex items-center gap-1 text-xs font-semibold"
+              title="จัดการสมาชิก"
+            >
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span className="hidden lg:inline">สมาชิก</span>
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={onOpenSettings}
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800 transition flex items-center gap-1 text-xs font-semibold"
+              title="ตั้งค่า AI Keys"
+            >
+              <Settings className="w-4 h-4 text-indigo-400" />
+              <span className="hidden lg:inline">ตั้งค่า</span>
+            </button>
+          </>
+        )}
 
         {/* Skills */}
         <button
@@ -215,16 +232,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           title="Tools & Skills"
         >
           <Wrench className="w-4 h-4 text-purple-400" />
-        </button>
-
-        {/* Settings */}
-        <button
-          onClick={onOpenSettings}
-          className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800 transition flex items-center gap-1 text-xs font-semibold"
-          title="ตั้งค่า AI Keys"
-        >
-          <Settings className="w-4 h-4 text-indigo-400" />
-          <span className="hidden lg:inline">ตั้งค่า</span>
         </button>
 
         {/* Logout */}
