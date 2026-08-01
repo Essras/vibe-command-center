@@ -183,7 +183,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 
   // Filter live models based on search query
   const filteredLiveModels = liveModels.filter((m) => {
-    if (!modelSearchQuery.trim()) return true;
+    if (!modelSearchQuery || !modelSearchQuery.trim()) return true;
     const q = modelSearchQuery.toLowerCase();
     return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
   });
@@ -431,7 +431,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    value={modelSearchQuery}
+                    value={modelSearchQuery || ''}
                     onChange={(e) => setModelSearchQuery(e.target.value)}
                     placeholder="🔍 ค้นหาโมเดล (พิมพ์ชื่อ เช่น grok, deepseek, free, gpt...)"
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
