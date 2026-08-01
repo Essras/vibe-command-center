@@ -69,17 +69,17 @@ export async function GET(req: Request) {
 
     // 3. Otherwise, Find or create member in local database
     let existingUserIndex = db.users.findIndex(
-      (u) => u.username === username || u.username === email
+      (u) => u.username === username || u.username === email || (u.googleEmail && u.googleEmail === email)
     );
 
     const isEnvAdmin = username === ADMIN_USERNAME || email === ADMIN_USERNAME;
-    const userRole = isEnvAdmin ? 'admin' : 'member';
 
     let user: UserMember;
 
     if (existingUserIndex === -1) {
       // New users via Google default to 'pending' unless they are admin
       const initialStatus = isEnvAdmin ? 'approved' : 'pending';
+      const userRole = isEnvAdmin ? 'admin' : 'member';
       const newUser: UserMember = {
         id: 'usr-' + Date.now(),
         username: username,
@@ -115,8 +115,8 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${origin}/login?error=${rejectedMsg}`);
     }
 
-    // 5. Create JWT session token for approved users
-    const token = await createToken({ username, role: userRole });
+    // 5. Create JWT session token for approved users using the bound user's username
+    const token = await createToken({ username: user.username, role: user.role });
     const response = NextResponse.redirect(`${origin}/`);
 
     response.cookies.set('vibe_session', token, {
