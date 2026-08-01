@@ -4,7 +4,7 @@ import path from 'path';
 export interface FavoriteModel {
   id: string;
   name: string;
-  provider: 'gemini' | 'openai' | 'claude' | 'openrouter' | 'okmd';
+  provider: 'gemini' | 'google' | 'openai' | 'claude' | 'openrouter' | 'okmd';
 }
 
 export interface ProviderKeys {
@@ -98,6 +98,8 @@ const DEFAULT_DATA: VibeData = {
     openrouterApiKey: '',
     okmdApiKey: '',
     okmdBaseUrl: 'https://gen.ai.kku.ac.th/okmd/api/v1',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   },
   autoFallback429: true,
   favoriteModels: [
@@ -146,6 +148,17 @@ export function getDb(): VibeData {
     const raw = fs.readFileSync(DB_PATH, 'utf-8');
     const parsed = JSON.parse(raw);
     
+    // Auto-migrate missing fields
+    if (!parsed.keys) parsed.keys = DEFAULT_DATA.keys;
+    if (!parsed.keys.googleClientId && process.env.GOOGLE_CLIENT_ID) {
+      parsed.keys.googleClientId = process.env.GOOGLE_CLIENT_ID;
+    }
+    if (!parsed.keys.googleClientSecret && process.env.GOOGLE_CLIENT_SECRET) {
+      parsed.keys.googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    }
+    if (!parsed.tokenUsageLogs) parsed.tokenUsageLogs = [];
+    if (!parsed.topupLogs) parsed.topupLogs = [];
+
     // Migration fallbacks
     if (!parsed.users || parsed.users.length === 0) {
       parsed.users = DEFAULT_DATA.users;
@@ -154,12 +167,8 @@ export function getDb(): VibeData {
       ...u,
       creditsBalance: typeof u.creditsBalance === 'number' ? u.creditsBalance : 100.0,
     }));
-    if (!parsed.tokenUsageLogs) {
-      parsed.tokenUsageLogs = [];
-    }
-    if (!parsed.topupLogs) {
-      parsed.topupLogs = [];
-    }
+    if (!parsed.tokenUsageLogs) parsed.tokenUsageLogs = [];
+    if (!parsed.topupLogs) parsed.topupLogs = [];
     // Update OKMD base URL default if set to old default
     if (parsed.keys && parsed.keys.okmdBaseUrl === 'https://api.okmd.ai/v1') {
       parsed.keys.okmdBaseUrl = 'https://gen.ai.kku.ac.th/okmd/api/v1';

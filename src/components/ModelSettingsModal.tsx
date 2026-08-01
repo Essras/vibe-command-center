@@ -43,7 +43,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   onOpenDashboard,
 }) => {
   const [selectedProvider, setSelectedProvider] = useState<
-    'gemini' | 'openai' | 'claude' | 'openrouter' | 'okmd'
+    'gemini' | 'google' | 'openai' | 'claude' | 'openrouter' | 'okmd'
   >('gemini');
 
   const [formKeys, setFormKeys] = useState<ProviderKeys>({ ...keys });
@@ -79,6 +79,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 
   const isProviderKeySet = (prov: string): boolean => {
     if (prov === 'gemini') return !!formKeys.geminiApiKey?.trim();
+    if (prov === 'google') return !!formKeys.googleClientId?.trim() && !!formKeys.googleClientSecret?.trim();
     if (prov === 'openai') return !!formKeys.openaiApiKey?.trim();
     if (prov === 'claude') return !!formKeys.claudeApiKey?.trim();
     if (prov === 'openrouter') return !!formKeys.openrouterApiKey?.trim();
@@ -249,6 +250,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
                 { id: 'gemini', name: 'Google Gemini (Native)' },
+                { id: 'google', name: 'Google OAuth & Drive' },
                 { id: 'openai', name: 'OpenAI' },
                 { id: 'claude', name: 'Anthropic Claude' },
                 { id: 'openrouter', name: 'OpenRouter' },
@@ -347,6 +349,40 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                   >
                     {showKeys['openai'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {selectedProvider === 'google' && (
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[11px] text-gray-400 block mb-1">Google OAuth Client ID</label>
+                  <input
+                    type="text"
+                    value={formKeys.googleClientId || ''}
+                    onChange={(e) => setFormKeys({ ...formKeys, googleClientId: e.target.value })}
+                    placeholder="xxxx.apps.googleusercontent.com"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-gray-400 block mb-1">Google OAuth Client Secret</label>
+                  <div className="relative">
+                    <input
+                      type={showKeys['googleSecret'] ? 'text' : 'password'}
+                      value={formKeys.googleClientSecret || ''}
+                      onChange={(e) => setFormKeys({ ...formKeys, googleClientSecret: e.target.value })}
+                      placeholder="GOCSPX-..."
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleShowKey('googleSecret')}
+                      className="absolute right-3 top-2 text-gray-400 hover:text-white"
+                    >
+                      {showKeys['googleSecret'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
