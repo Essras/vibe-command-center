@@ -249,15 +249,26 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <span className="w-2 h-2 rounded-full bg-indigo-400" />
                     OKMD AI Playground
                   </span>
-                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950 px-2 py-0.5 rounded">
-                    Educational
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-950 px-2 py-0.5 rounded border border-indigo-800/40">
+                    Official Quotas
                   </span>
                 </div>
                 <div className="text-xs font-mono text-gray-200">
-                  วันนี้ใช้ไป: <strong className="text-indigo-300 text-sm">{data?.freeModelQuotas?.okmd?.todayRequests || 0}</strong> ครั้ง
+                  วันนี้ใช้ไป: <strong className="text-indigo-300">{data?.freeModelQuotas?.okmd?.todayRequests || 0}</strong> ครั้ง ({data?.freeModelQuotas?.okmd?.todayTokens?.toLocaleString() || 0} Tokens)
                 </div>
-                <div className="text-[10px] text-gray-400 pt-1">
-                  โควต้า: {data?.freeModelQuotas?.okmd?.limitText || 'Unlimited Tier'}
+                <div className="text-[10px] space-y-1 pt-1 border-t border-gray-850 text-gray-400 font-mono">
+                  <div className="flex justify-between">
+                    <span>DeepSeek:</span>
+                    <span className="text-gray-200 font-bold">1,000,000 tkn/day</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>OpenAI:</span>
+                    <span className="text-gray-200 font-bold">350,000 tkn/day</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Gemini / Claude:</span>
+                    <span className="text-gray-200 font-bold">200k / 180k tkn/day</span>
+                  </div>
                 </div>
               </div>
 

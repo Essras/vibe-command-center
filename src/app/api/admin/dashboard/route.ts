@@ -56,11 +56,40 @@ export async function GET() {
       (l) => l.modelUsed.toLowerCase().includes('gemini') || l.modelUsed.toLowerCase().includes('google')
     ).length;
 
-    const okmdTodayCount = todayLogs.filter((l) => l.modelUsed.toLowerCase().includes('okmd')).length;
+    const okmdTodayLogs = todayLogs.filter((l) => l.modelUsed.toLowerCase().includes('okmd'));
+    const okmdTodayCount = okmdTodayLogs.length;
+    const okmdTodayTokens = okmdTodayLogs.reduce((acc, l) => acc + (l.promptTokens || 0) + (l.completionTokens || 0), 0);
+
     const openrouterTodayCount = todayLogs.filter((l) => l.modelUsed.includes('/')).length;
     const openaiTodayCount = todayLogs.filter(
       (l) => l.modelUsed.toLowerCase().includes('gpt') || l.modelUsed.toLowerCase().includes('o3')
     ).length;
+
+    // OKMD Live Quota Fetch
+    let okmdLiveQuota: any = null;
+    const okmdKey = db.keys?.okmdApiKey?.trim();
+    const okmdBaseUrl = db.keys?.okmdBaseUrl?.trim() || 'https://gen.ai.kku.ac.th/okmd/api/v1';
+
+    if (okmdKey) {
+      try {
+        const okmdRes = await fetch(`${okmdBaseUrl}/user/quota`, {
+          headers: { Authorization: `Bearer ${okmdKey}` },
+        });
+        if (okmdRes.ok) {
+          okmdLiveQuota = await okmdRes.json();
+        } else {
+          // Try alternative endpoint /quota or /user/me
+          const altRes = await fetch(`${okmdBaseUrl}/quota`, {
+            headers: { Authorization: `Bearer ${okmdKey}` },
+          });
+          if (altRes.ok) {
+            okmdLiveQuota = await altRes.json();
+          }
+        }
+      } catch (e) {
+        // Fallback to internal token calculation
+      }
+    }
 
     // User / Tenant summaries
     const userSummaries = users.map((u) => {
@@ -124,7 +153,16 @@ export async function GET() {
         },
         okmd: {
           todayRequests: okmdTodayCount,
-          limitText: 'Unlimited (Educational Tier)',
+          todayTokens: okmdTodayTokens,
+          liveQuota: okmdLiveQuota,
+          officialDailyLimits: {
+            DeepSeek: 1000000,
+            OpenAI: 350000,
+            Gemini: 200000,
+            Claude: 180000,
+            MetaAI: 200000,
+            xAI: 100000,
+          },
         },
         openrouter: {
           todayRequests: openrouterTodayCount,
@@ -150,6 +188,10 @@ export async function GET() {
         },
         gemini: {
           configured: !!db.keys?.geminiApiKey?.trim(),
+        },
+        okmd: {
+          configured: !!db.keys?.okmdApiKey?.trim(),
+          liveQuota: okmdLiveQuota,
         },
       },
     });
