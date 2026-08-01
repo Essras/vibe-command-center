@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/CodeEditor';
 import { ModelSettingsModal } from '@/components/ModelSettingsModal';
 import { ProjectModal } from '@/components/ProjectModal';
 import { SkillsModal } from '@/components/SkillsModal';
+import { UserManagementModal } from '@/components/UserManagementModal';
 import { Project, FavoriteModel, ProviderKeys, VibeData } from '@/lib/db';
 
 export default function DashboardPage() {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessageUI[]>([]);
@@ -243,6 +245,7 @@ export default function DashboardPage() {
         onSelectModel={handleSelectModel}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenSkills={() => setIsSkillsModalOpen(true)}
+        onOpenUsers={() => setIsUsersModalOpen(true)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={handleLogout}
@@ -292,6 +295,11 @@ export default function DashboardPage() {
       <SkillsModal
         isOpen={isSkillsModalOpen}
         onClose={() => setIsSkillsModalOpen(false)}
+      />
+
+      <UserManagementModal
+        isOpen={isUsersModalOpen}
+        onClose={() => setIsUsersModalOpen(false)}
       />
     </div>
   );

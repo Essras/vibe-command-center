@@ -25,6 +25,14 @@ export interface Project {
   createdAt: string;
 }
 
+export interface UserMember {
+  id: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'member';
+  createdAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   projectId: string;
@@ -42,6 +50,7 @@ export interface VibeData {
   activeModelId: string;
   projects: Project[];
   chatHistory: Record<string, ChatMessage[]>; // projectId -> messages
+  users: UserMember[];
 }
 
 const DB_PATH = process.env.DATA_PATH
@@ -55,7 +64,7 @@ const DEFAULT_DATA: VibeData = {
     claudeApiKey: '',
     openrouterApiKey: '',
     okmdApiKey: '',
-    okmdBaseUrl: 'https://api.okmd.ai/v1',
+    okmdBaseUrl: 'https://gen.ai.kku.ac.th/okmd/api/v1',
   },
   autoFallback429: true,
   favoriteModels: [
@@ -77,6 +86,15 @@ const DEFAULT_DATA: VibeData = {
     },
   ],
   chatHistory: {},
+  users: [
+    {
+      id: 'user-admin',
+      username: process.env.ADMIN_USERNAME || 'admin',
+      password: process.env.ADMIN_PASSWORD || 'vibe2026',
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+    },
+  ],
 };
 
 export function getDb(): VibeData {
@@ -91,6 +109,16 @@ export function getDb(): VibeData {
     }
     const raw = fs.readFileSync(DB_PATH, 'utf-8');
     const parsed = JSON.parse(raw);
+    
+    // Migration fallback for users list
+    if (!parsed.users || parsed.users.length === 0) {
+      parsed.users = DEFAULT_DATA.users;
+    }
+    // Update OKMD base URL default if set to old default
+    if (parsed.keys && parsed.keys.okmdBaseUrl === 'https://api.okmd.ai/v1') {
+      parsed.keys.okmdBaseUrl = 'https://gen.ai.kku.ac.th/okmd/api/v1';
+    }
+
     return { ...DEFAULT_DATA, ...parsed };
   } catch (err) {
     console.error('Error reading DB:', err);

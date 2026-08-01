@@ -12,6 +12,7 @@ import {
   LogOut,
   Sparkles,
   Zap,
+  Users,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,6 +25,7 @@ interface NavbarProps {
   onSelectModel: (id: string) => void;
   onOpenSettings: () => void;
   onOpenSkills: () => void;
+  onOpenUsers: () => void;
   activeTab: 'chat' | 'editor';
   onTabChange: (tab: 'chat' | 'editor') => void;
   onLogout: () => void;
@@ -39,6 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectModel,
   onOpenSettings,
   onOpenSkills,
+  onOpenUsers,
   activeTab,
   onTabChange,
   onLogout,
@@ -144,6 +147,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Code Editor</span>
           </button>
         </div>
+
+        {/* Member Management */}
+        <button
+          onClick={onOpenUsers}
+          className="p-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition flex items-center gap-1 text-xs font-medium"
+          title="จัดการสมาชิก & พาสเวิร์ด"
+        >
+          <Users className="w-4 h-4 text-emerald-400" />
+          <span className="hidden sm:inline">สมาชิก</span>
+        </button>
 
         {/* Tools & Skills */}
         <button
