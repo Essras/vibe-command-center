@@ -154,7 +154,7 @@ export default function DashboardPage() {
           timestamp: new Date().toISOString(),
         },
       ]);
-    } fontally {
+    } finally {
       setIsLoading(false);
     }
   };
