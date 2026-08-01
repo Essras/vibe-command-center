@@ -52,10 +52,11 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const [newModelId, setNewModelId] = useState('');
   const [newModelName, setNewModelName] = useState('');
 
-  // Live Fetched Models State
+  // Live Fetched Models State & Search Filter
   const [liveModels, setLiveModels] = useState<{ id: string; name: string; provider: string }[]>([]);
   const [fetchingLive, setFetchingLive] = useState(false);
   const [liveError, setLiveError] = useState('');
+  const [modelSearchQuery, setModelSearchQuery] = useState('');
 
   // Test & Quota States
   const [testResult, setTestResult] = useState<{
@@ -167,6 +168,13 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
     onClose();
   };
 
+  // Filter live models based on search query
+  const filteredLiveModels = liveModels.filter((m) => {
+    if (!modelSearchQuery.trim()) return true;
+    const q = modelSearchQuery.toLowerCase();
+    return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -205,6 +213,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                     setSelectedProvider(p.id as any);
                     setLiveModels([]);
                     setLiveError('');
+                    setModelSearchQuery('');
                   }}
                   className={`p-3 rounded-xl border text-left font-medium transition ${
                     selectedProvider === p.id
@@ -362,7 +371,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-xs flex items-center gap-1 transition shadow disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${fetchingLive ? 'animate-spin' : ''}`} />
-                <span>{fetchingLive ? 'กำลังดึงข้อมูล...' : '🔍 ดึงรายการโมเดลที่ทำงานอยู่'}</span>
+                <span>{fetchingLive ? 'กำลังดึงข้อมูล...' : '🔍 ดึงรายการโมเดลทั้งหมด'}</span>
               </button>
             </div>
 
@@ -373,12 +382,27 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
             )}
 
             {liveModels.length > 0 && (
-              <div className="space-y-1.5">
-                <div className="text-[11px] text-gray-400">
-                  พบ {liveModels.length} โมเดล (คลิกเลือกเพื่อบันทึกลงโมเดลโปรด):
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-gray-400">
+                    พบทั้งหมด <strong className="text-emerald-400">{liveModels.length}</strong> โมเดล (ค้นหาและคลิกเลือกเพื่อเพิ่ม):
+                  </span>
                 </div>
-                <div className="max-h-40 overflow-y-auto border border-gray-800 rounded-lg p-2 bg-gray-900 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {liveModels.map((m) => {
+
+                {/* Instant Search Filter */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={modelSearchQuery}
+                    onChange={(e) => setModelSearchQuery(e.target.value)}
+                    placeholder="🔍 ค้นหาโมเดล (พิมพ์ชื่อ เช่น grok, deepseek, free, gpt...)"
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  />
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+                </div>
+
+                <div className="max-h-56 overflow-y-auto border border-gray-800 rounded-lg p-2 bg-gray-900 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {filteredLiveModels.map((m) => {
                     const isAdded = favorites.some((f) => f.id === m.id);
                     return (
                       <button

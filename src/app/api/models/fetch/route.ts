@@ -65,7 +65,8 @@ export async function POST(req: Request) {
       }
       const data = await res.json();
       if (data.data && Array.isArray(data.data)) {
-        fetchedModels = data.data.slice(0, 30).map((m: any) => ({
+        // Fetch ALL models without truncation limit
+        fetchedModels = data.data.map((m: any) => ({
           id: m.id,
           name: m.name || m.id,
           provider: 'openrouter',
