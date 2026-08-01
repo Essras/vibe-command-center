@@ -13,6 +13,14 @@ export async function GET() {
     const users = db.users || [];
     const topups = db.topupLogs || [];
 
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const currentMinuteStr = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+
+    // Filter logs for today & current minute
+    const todayLogs = logs.filter((l) => l.timestamp && l.timestamp.startsWith(todayStr));
+    const minuteLogs = logs.filter((l) => l.timestamp && l.timestamp.startsWith(currentMinuteStr));
+
     // Calculate aggregated metrics
     const totalPromptTokens = logs.reduce((acc, l) => acc + (l.promptTokens || 0), 0);
     const totalCompletionTokens = logs.reduce((acc, l) => acc + (l.completionTokens || 0), 0);
@@ -39,6 +47,20 @@ export async function GET() {
       categoryUsage[cat].credits += log.creditsDeducted || 0;
       categoryUsage[cat].tokens += (log.promptTokens || 0) + (log.completionTokens || 0);
     });
+
+    // Provider usage breakdown for today (Gemini, OKMD, OpenRouter, OpenAI, Claude)
+    const geminiTodayCount = todayLogs.filter(
+      (l) => l.modelUsed.toLowerCase().includes('gemini') || l.modelUsed.toLowerCase().includes('google')
+    ).length;
+    const geminiMinuteCount = minuteLogs.filter(
+      (l) => l.modelUsed.toLowerCase().includes('gemini') || l.modelUsed.toLowerCase().includes('google')
+    ).length;
+
+    const okmdTodayCount = todayLogs.filter((l) => l.modelUsed.toLowerCase().includes('okmd')).length;
+    const openrouterTodayCount = todayLogs.filter((l) => l.modelUsed.includes('/')).length;
+    const openaiTodayCount = todayLogs.filter(
+      (l) => l.modelUsed.toLowerCase().includes('gpt') || l.modelUsed.toLowerCase().includes('o3')
+    ).length;
 
     // User / Tenant summaries
     const userSummaries = users.map((u) => {
@@ -91,9 +113,30 @@ export async function GET() {
         requestCount: logs.length,
       },
       categoryUsage,
+      freeModelQuotas: {
+        gemini: {
+          rpdUsed: geminiTodayCount,
+          rpdLimit: 1500, // Google AI Studio Free Tier RPD
+          rpmUsed: geminiMinuteCount,
+          rpmLimit: 15,   // Google AI Studio Free Tier RPM
+          rpdPct: Math.min(100, Math.round((geminiTodayCount / 1500) * 100)),
+          rpmPct: Math.min(100, Math.round((geminiMinuteCount / 15) * 100)),
+        },
+        okmd: {
+          todayRequests: okmdTodayCount,
+          limitText: 'Unlimited (Educational Tier)',
+        },
+        openrouter: {
+          todayRequests: openrouterTodayCount,
+          balanceUSD: openrouterBalanceUSD,
+        },
+        openai: {
+          todayRequests: openaiTodayCount,
+        },
+      },
       userSummaries,
-      recentLogs: logs.slice(0, 20),
-      topupLogs: topups.slice(0, 20),
+      recentLogs: logs.slice(0, 25),
+      topupLogs: topups.slice(0, 25),
       providerQuotas: {
         openrouter: {
           configured: !!db.keys?.openrouterApiKey?.trim(),

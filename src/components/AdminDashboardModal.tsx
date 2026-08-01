@@ -201,6 +201,89 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             </div>
           </div>
 
+          {/* FREE MODELS & API QUOTA TRACKER WIDGET */}
+          <div className="p-5 rounded-2xl bg-gray-900/70 border border-gray-850 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>ติดตามการใช้งานโมเดลฟรี & API Quotas (Free Model Quota Tracker)</span>
+              </h3>
+              <span className="text-[11px] text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-800/40 font-mono">
+                Official Limits Monitor
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Google Gemini Free Tier Tracker */}
+              <div className="p-4 rounded-xl bg-gray-950 border border-gray-850/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-emerald-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Google Gemini (Free Tier)
+                  </span>
+                  <span className="text-[10px] font-mono text-gray-400">
+                    {data?.freeModelQuotas?.gemini?.rpdPct || 0}%
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-gray-200 flex justify-between">
+                  <span>วันนี้ใช้ไป: <strong>{data?.freeModelQuotas?.gemini?.rpdUsed || 0}</strong> / 1,500</span>
+                  <span className="text-gray-400">RPD (Per Day)</span>
+                </div>
+                {/* Progress bar for Gemini Daily Quota */}
+                <div className="w-full bg-gray-850 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                    style={{ width: `${data?.freeModelQuotas?.gemini?.rpdPct || 0}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-gray-400 font-mono flex justify-between pt-0.5">
+                  <span>นาทีนี้: {data?.freeModelQuotas?.gemini?.rpmUsed || 0} / 15 RPM</span>
+                  <span className="text-emerald-400">Google AI Studio</span>
+                </div>
+              </div>
+
+              {/* OKMD AI Playground Tracker */}
+              <div className="p-4 rounded-xl bg-gray-950 border border-gray-850/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-indigo-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                    OKMD AI Playground
+                  </span>
+                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-950 px-2 py-0.5 rounded">
+                    Educational
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-gray-200">
+                  วันนี้ใช้ไป: <strong className="text-indigo-300 text-sm">{data?.freeModelQuotas?.okmd?.todayRequests || 0}</strong> ครั้ง
+                </div>
+                <div className="text-[10px] text-gray-400 pt-1">
+                  โควต้า: {data?.freeModelQuotas?.okmd?.limitText || 'Unlimited Tier'}
+                </div>
+              </div>
+
+              {/* OpenRouter Calls & Balance Tracker */}
+              <div className="p-4 rounded-xl bg-gray-950 border border-gray-850/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-purple-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400" />
+                    OpenRouter (Free/Paid)
+                  </span>
+                  <span className="text-[10px] font-mono text-purple-300">
+                    {data?.freeModelQuotas?.openrouter?.balanceUSD !== null && data?.freeModelQuotas?.openrouter?.balanceUSD !== undefined
+                      ? `$${data.freeModelQuotas.openrouter.balanceUSD.toFixed(2)}`
+                      : 'Active'}
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-gray-200">
+                  วันนี้ใช้ไป: <strong className="text-purple-300 text-sm">{data?.freeModelQuotas?.openrouter?.todayRequests || 0}</strong> ครั้ง
+                </div>
+                <div className="text-[10px] text-gray-400 pt-1">
+                  รองรับโมเดลฟรีทั้งหมด + Custom Models
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 2. MODEL CATEGORY USAGE BREAKDOWN (WIDGET) */}
           <div className="p-5 rounded-2xl bg-gray-900/70 border border-gray-850 space-y-3">
             <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
