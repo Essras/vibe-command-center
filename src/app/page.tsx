@@ -249,6 +249,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onLogout={handleLogout}
+        keys={data?.keys}
       />
 
       <main className="flex-1 flex flex-col">

@@ -74,6 +74,15 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isProviderKeySet = (prov: string): boolean => {
+    if (prov === 'gemini') return !!formKeys.geminiApiKey?.trim();
+    if (prov === 'openai') return !!formKeys.openaiApiKey?.trim();
+    if (prov === 'claude') return !!formKeys.claudeApiKey?.trim();
+    if (prov === 'openrouter') return !!formKeys.openrouterApiKey?.trim();
+    if (prov === 'okmd') return !!formKeys.okmdApiKey?.trim();
+    return false;
+  };
+
   const toggleShowKey = (field: string) => {
     setShowKeys((prev) => ({ ...prev, [field]: !prev[field] }));
   };
@@ -205,33 +214,58 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 { id: 'claude', name: 'Anthropic Claude' },
                 { id: 'openrouter', name: 'OpenRouter' },
                 { id: 'okmd', name: 'OKMD AI PLAYGROUND' },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedProvider(p.id as any);
-                    setLiveModels([]);
-                    setLiveError('');
-                    setModelSearchQuery('');
-                  }}
-                  className={`p-3 rounded-xl border text-left font-medium transition ${
-                    selectedProvider === p.id
-                      ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-sm'
-                      : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-800'
-                  }`}
-                >
-                  <div className="font-semibold text-xs text-gray-100">{p.name}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{p.id.toUpperCase()} API</div>
-                </button>
-              ))}
+              ].map((p) => {
+                const isKeyReady = isProviderKeySet(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedProvider(p.id as any);
+                      setLiveModels([]);
+                      setLiveError('');
+                      setModelSearchQuery('');
+                    }}
+                    className={`p-3 rounded-xl border text-left font-medium transition relative ${
+                      selectedProvider === p.id
+                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-sm'
+                        : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-xs text-gray-100">{p.name}</div>
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          isKeyReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-red-500'
+                        }`}
+                        title={isKeyReady ? 'พร้อมใช้งาน (Key Configured)' : 'ยังไม่ได้ตั้งค่า API Key'}
+                      />
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+                      <span>{p.id.toUpperCase()} API</span>
+                      <span className={isKeyReady ? 'text-emerald-400 font-bold' : 'text-red-400'}>
+                        ({isKeyReady ? '🟢 เชื่อมต่อแล้ว' : '🔴 ยังไม่ใส่คีย์'})
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* 2. API Key Inputs */}
           <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-3">
-            <h3 className="font-semibold text-gray-200 flex items-center gap-1.5">
+            <h3 className="font-semibold text-gray-200 flex items-center justify-between">
               <span>2. กรอก API Key สำหรับ {selectedProvider.toUpperCase()}</span>
+              <span
+                className={`text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${
+                  isProviderKeySet(selectedProvider)
+                    ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+                    : 'bg-red-950/80 border-red-500/50 text-red-300'
+                }`}
+              >
+                {isProviderKeySet(selectedProvider) ? '🟢 Key Ready' : '🔴 Missing Key'}
+              </span>
             </h3>
 
             {selectedProvider === 'gemini' && (
@@ -416,7 +450,10 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                         }`}
                       >
                         <div className="truncate mr-1">
-                          <div className="font-bold text-xs truncate">{m.name}</div>
+                          <div className="font-bold text-xs truncate flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                            <span className="truncate">{m.name}</span>
+                          </div>
                           <div className="text-[10px] text-gray-400 font-mono truncate">{m.id}</div>
                         </div>
                         {isAdded ? (
@@ -437,22 +474,29 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 รายการโมเดลโปรดที่บันทึกไว้ในระบบ ({favorites.length} โมเดล)
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {favorites.map((fav) => (
-                  <div
-                    key={fav.id}
-                    className="bg-indigo-950/80 border border-indigo-500/40 text-indigo-200 text-xs px-3 py-1 rounded-lg flex items-center space-x-2"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="font-medium">{fav.name}</span>
-                    <span className="text-[10px] text-indigo-400">[{fav.provider.toUpperCase()}]</span>
-                    <button
-                      onClick={() => handleRemoveFavorite(fav.id)}
-                      className="text-gray-400 hover:text-red-400 transition"
+                {favorites.map((fav) => {
+                  const isReady = isProviderKeySet(fav.provider);
+                  return (
+                    <div
+                      key={fav.id}
+                      className={`border text-xs px-3 py-1 rounded-lg flex items-center space-x-2 transition ${
+                        isReady
+                          ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-200'
+                          : 'bg-red-950/50 border-red-500/40 text-red-300'
+                      }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isReady ? 'bg-emerald-400' : 'bg-red-500'}`} />
+                      <span className="font-medium">{fav.name}</span>
+                      <span className="text-[10px] opacity-80">[{fav.provider.toUpperCase()}]</span>
+                      <button
+                        onClick={() => handleRemoveFavorite(fav.id)}
+                        className="text-gray-400 hover:text-red-400 transition ml-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Add custom favorite model form */}
@@ -546,20 +590,33 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
           {/* Quota Monitor Display */}
           {quotaResult.data && (
             <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-2">
-              <h4 className="font-bold text-xs text-purple-300">📊 Real-Time Quota Monitor Stats:</h4>
+              <h4 className="font-bold text-xs text-purple-300">📊 Real-Time Quota & Connection Monitor Stats:</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                {Object.entries(quotaResult.data.quotas || {}).map(([key, val]: any) => (
-                  <div key={key} className="p-2 rounded bg-gray-900 border border-gray-800">
-                    <span className="font-semibold text-gray-200">{val.provider}:</span>
-                    <span
-                      className={`ml-2 font-mono ${
-                        val.keyConfigured ? 'text-emerald-400' : 'text-gray-500'
+                {Object.entries(quotaResult.data.quotas || {}).map(([key, val]: any) => {
+                  const isReady = val.keyConfigured;
+                  return (
+                    <div
+                      key={key}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between transition ${
+                        isReady
+                          ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200'
+                          : 'bg-red-950/40 border-red-500/50 text-red-300'
                       }`}
                     >
-                      {val.status}
-                    </span>
-                  </div>
-                ))}
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                            isReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse' : 'bg-red-500'
+                          }`}
+                        />
+                        <span className="font-bold">{val.provider}:</span>
+                      </div>
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-black/40">
+                        {isReady ? '🟢 เชื่อมต่อแล้ว (Ready)' : '🔴 ยังไม่มี API Key (Missing)'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

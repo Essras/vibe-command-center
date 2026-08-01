@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Project, FavoriteModel } from '@/lib/db';
+import { Project, FavoriteModel, ProviderKeys } from '@/lib/db';
 import {
   FolderKanban,
   Settings,
@@ -30,6 +30,7 @@ interface NavbarProps {
   activeTab: 'chat' | 'editor';
   onTabChange: (tab: 'chat' | 'editor') => void;
   onLogout: () => void;
+  keys?: ProviderKeys;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -46,8 +47,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
   onLogout,
+  keys,
 }) => {
   const activeModel = favoriteModels.find((m) => m.id === activeModelId);
+
+  const isKeyConfigured = (provider: string): boolean => {
+    if (!keys) return true;
+    if (provider === 'gemini') return !!keys.geminiApiKey?.trim();
+    if (provider === 'openai') return !!keys.openaiApiKey?.trim();
+    if (provider === 'claude') return !!keys.claudeApiKey?.trim();
+    if (provider === 'openrouter') return !!keys.openrouterApiKey?.trim();
+    if (provider === 'okmd') return !!keys.okmdApiKey?.trim();
+    return false;
+  };
 
   // Group models by provider for clean dropdown presentation
   const providerGroups = favoriteModels.reduce((acc, m) => {
@@ -56,6 +68,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     acc[prov].push(m);
     return acc;
   }, {} as Record<string, FavoriteModel[]>);
+
+  const activeReady = activeModel ? isKeyConfigured(activeModel.provider) : false;
 
   return (
     <header className="h-14 border-b border-gray-800/80 bg-gray-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between sticky top-0 z-30 shrink-0 select-none">
@@ -103,10 +117,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Center: Model Selector Dropdown Grouped by Provider */}
+      {/* Center: Model Selector Dropdown Grouped by Provider with Green/Red Indicators */}
       <div className="flex items-center justify-center px-2 min-w-0 shrink">
         <div className="relative flex items-center bg-gray-900/90 border border-gray-800 rounded-xl px-2.5 py-1.5 hover:border-indigo-500/50 transition">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 mr-1.5 shrink-0" />
+          <span
+            className={`w-2.5 h-2.5 rounded-full mr-1.5 shrink-0 ${
+              activeReady ? 'bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse' : 'bg-red-500'
+            }`}
+            title={activeReady ? 'โมเดลพร้อมใช้งาน (🟢 Connected)' : 'ยังไม่ได้ตั้งค่า API Key (🔴 Missing Key)'}
+          />
           <span className="text-[11px] text-gray-400 font-medium mr-1 hidden lg:inline-block whitespace-nowrap">
             โมเดล:
           </span>
@@ -121,11 +140,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 label={`── ${providerName} MODELS ──`}
                 className="bg-gray-900 text-indigo-300 font-semibold"
               >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-gray-900 text-gray-100 font-normal">
-                    {m.name}
-                  </option>
-                ))}
+                {models.map((m) => {
+                  const ready = isKeyConfigured(m.provider);
+                  return (
+                    <option key={m.id} value={m.id} className="bg-gray-900 text-gray-100 font-normal">
+                      {ready ? '🟢' : '🔴'} {m.name} {ready ? '' : '(ยังไม่ใส่คีย์)'}
+                    </option>
+                  );
+                })}
               </optgroup>
             ))}
           </select>
