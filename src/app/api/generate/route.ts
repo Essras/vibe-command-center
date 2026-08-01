@@ -72,15 +72,11 @@ export async function POST(req: Request) {
     const webMediaInstructions = `\n\n[SYSTEM GUIDELINES: WEB BUILDING & MEDIA ASSET MANAGEMENT]
 1. When generating websites or online courses: Structure files cleanly in the project directory (e.g. index.html, styles.css, /images, /videos).
 2. For website images, reference relative paths like './images/hero-banner.png' or './images/card-1.png'.
-3. For YouTube video embeds in online courses or websites:
-   - MUST ALWAYS use YouTube embed URL with clean custom parameters:
+3. For YouTube video embeds in online courses or websites (Supports 2 Levels):
+   - LEVEL 1 (Clean iframe embed):
      https://www.youtube.com/embed/VIDEO_ID?rel=0&modestbranding=1&controls=1&cc_load_policy=1&cc_lang_pref=th&hl=th
-   - Parameters breakdown:
-     * cc_load_policy=1 : Auto-enable Captions/Subtitles (CC) for accessibility and ease of learning.
-     * cc_lang_pref=th : Default Subtitle language to Thai ('th').
-     * rel=0 : Hide external recommended videos to keep learners focused on the course.
-     * modestbranding=1 : Hide prominent YouTube logo to maintain clean, professional UI.
-     * hl=th : Set Player interface language to Thai.
+   - LEVEL 2 (Premium Custom Video Player Overlay via Plyr.js - Hides YouTube UI 100%):
+     Include Plyr.js CDN (https://cdn.plyr.io/3.7.8/plyr.css and plyr.js) to wrap YouTube video with custom Dark Mode player UI, auto-enabled Thai CC captions, custom speed controls (0.5x - 2x), and zero YouTube branding redirect buttons!
 4. Always explain to the user in friendly Thai how to preview their site or download their project.`;
 
     const systemPrompt = baseSystemPrompt + webMediaInstructions;
