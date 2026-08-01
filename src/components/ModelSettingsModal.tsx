@@ -53,7 +53,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   const [newModelName, setNewModelName] = useState('');
 
   // Live Fetched Models State & Search Filter
-  const [liveModels, setLiveModels] = useState<{ id: string; name: string; provider: string }[]>([]);
+  const [liveModels, setLiveModels] = useState<{ id: string; name: string; provider: string; isFree?: boolean }[]>([]);
   const [fetchingLive, setFetchingLive] = useState(false);
   const [liveError, setLiveError] = useState('');
   const [modelSearchQuery, setModelSearchQuery] = useState('');
@@ -455,8 +455,16 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                       >
                         <div className="truncate mr-1">
                           <div className="font-bold text-xs truncate flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                            <span className="truncate">{m.name}</span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 ${
+                                m.isFree
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40'
+                                  : 'bg-cyan-950 text-cyan-400 border border-cyan-500/40'
+                              }`}
+                            >
+                              {m.isFree ? 'FREE 🟢' : 'PAID 💳'}
+                            </span>
+                            <span className="truncate">{m.name.replace(/^\[(FREE|PAID).*?\]\s*/, '')}</span>
                           </div>
                           <div className="text-[10px] text-gray-400 font-mono truncate">{m.id}</div>
                         </div>

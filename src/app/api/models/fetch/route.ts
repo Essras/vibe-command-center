@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const db = getDb();
     const keys = db.keys;
 
-    let fetchedModels: { id: string; name: string; provider: string }[] = [];
+    let fetchedModels: { id: string; name: string; provider: string; isFree: boolean }[] = [];
 
     if (provider === 'gemini') {
       const apiKey = keys.geminiApiKey || process.env.GEMINI_API_KEY;
@@ -28,8 +28,9 @@ export async function POST(req: Request) {
             const rawId = m.name.replace('models/', '');
             return {
               id: rawId,
-              name: m.displayName || rawId,
+              name: `[FREE TIER 🟢] ${m.displayName || rawId}`,
               provider: 'gemini',
+              isFree: true,
             };
           });
       }
@@ -50,8 +51,9 @@ export async function POST(req: Request) {
           .filter((m: any) => m.id.startsWith('gpt') || m.id.startsWith('o1') || m.id.startsWith('o3'))
           .map((m: any) => ({
             id: m.id,
-            name: m.id,
+            name: `[PAID 💳] ${m.id}`,
             provider: 'openai',
+            isFree: false,
           }));
       }
     } else if (provider === 'openrouter') {
@@ -65,12 +67,15 @@ export async function POST(req: Request) {
       }
       const data = await res.json();
       if (data.data && Array.isArray(data.data)) {
-        // Fetch ALL models without truncation limit
-        fetchedModels = data.data.map((m: any) => ({
-          id: m.id,
-          name: m.name || m.id,
-          provider: 'openrouter',
-        }));
+        fetchedModels = data.data.map((m: any) => {
+          const isFree = m.id.endsWith(':free') || m.pricing?.prompt === '0';
+          return {
+            id: m.id,
+            name: `${isFree ? '[FREE 🟢]' : '[PAID 💳]'} ${m.name || m.id}`,
+            provider: 'openrouter',
+            isFree,
+          };
+        });
       }
     } else if (provider === 'okmd') {
       const apiKey = keys.okmdApiKey;
@@ -89,11 +94,11 @@ export async function POST(req: Request) {
         const list = Array.isArray(data) ? data : data.data || [];
         fetchedModels = list.map((m: any) => ({
           id: String(m.id || m.name),
-          name: m.owned_by || m.name || `OKMD Model ${m.id}`,
+          name: `[FREE QUOTA 🟢] ${m.owned_by || m.name || `OKMD Model ${m.id}`}`,
           provider: 'okmd',
+          isFree: true,
         }));
       } else {
-        // Try fallback endpoint /chat/models-list
         const res2 = await fetch(`${baseUrl}/chat/models-list`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}` },
@@ -103,8 +108,9 @@ export async function POST(req: Request) {
           const list2 = Array.isArray(data2) ? data2 : data2.data || [];
           fetchedModels = list2.map((m: any) => ({
             id: String(m.id || m.name),
-            name: m.name || `OKMD Model ${m.id}`,
+            name: `[FREE QUOTA 🟢] ${m.name || `OKMD Model ${m.id}`}`,
             provider: 'okmd',
+            isFree: true,
           }));
         } else {
           throw new Error(`OKMD API Error: ${res.statusText}`);
@@ -112,9 +118,9 @@ export async function POST(req: Request) {
       }
     } else if (provider === 'claude') {
       fetchedModels = [
-        { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'claude' },
-        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'claude' },
-        { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'claude' },
+        { id: 'claude-3-5-sonnet-20241022', name: '[PAID 💳] Claude 3.5 Sonnet', provider: 'claude', isFree: false },
+        { id: 'claude-3-5-haiku-20241022', name: '[PAID 💳] Claude 3.5 Haiku', provider: 'claude', isFree: false },
+        { id: 'claude-3-opus-20240229', name: '[PAID 💳] Claude 3 Opus', provider: 'claude', isFree: false },
       ];
     }
 
