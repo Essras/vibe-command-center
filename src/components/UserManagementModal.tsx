@@ -358,6 +358,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen
                             >
                               {isPending ? '🟡 รอการอนุมัติ' : isRejected ? '🔴 ถูกปฏิเสธ' : '🟢 อนุมัติแล้ว'}
                             </span>
+                            {u.googleEmail && (
+                              <span
+                                className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-blue-950/80 border-blue-500/60 text-blue-300 flex items-center gap-1 font-mono"
+                                title={`ผูกบัญชี Google: ${u.googleEmail}`}
+                              >
+                                <span>🔗 {u.googleEmail}</span>
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
