@@ -36,6 +36,10 @@ export interface UserMember {
   status?: 'approved' | 'pending' | 'rejected';
   creditsBalance: number;
   createdAt: string;
+  googleConnected?: boolean;
+  googleEmail?: string;
+  googleAccessToken?: string;
+  googleConnectedAt?: string;
 }
 
 export interface TokenUsageLogItem {

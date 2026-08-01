@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb, saveDb, UserMember } from '@/lib/db';
-import { createToken, ADMIN_USERNAME, getAppOrigin } from '@/lib/auth';
+import { createToken, ADMIN_USERNAME, getAppOrigin, getCurrentUser } from '@/lib/auth';
 
 export async function GET(req: Request) {
   const origin = getAppOrigin(req);
@@ -53,7 +53,21 @@ export async function GET(req: Request) {
     const email = googleUser.email;
     const username = email ? email.split('@')[0] : 'google_user_' + Date.now();
 
-    // 3. Find or create member in local database
+    // Check if user is ALREADY logged in (Binding Google Drive account to current active session)
+    const activeSession = await getCurrentUser();
+    if (activeSession && activeSession.username) {
+      const loggedUserIdx = db.users.findIndex((u) => u.username === activeSession.username);
+      if (loggedUserIdx !== -1) {
+        db.users[loggedUserIdx].googleConnected = true;
+        db.users[loggedUserIdx].googleEmail = email;
+        db.users[loggedUserIdx].googleAccessToken = accessToken;
+        db.users[loggedUserIdx].googleConnectedAt = new Date().toISOString();
+        saveDb(db);
+        return NextResponse.redirect(`${origin}/?status=GoogleDriveConnected`);
+      }
+    }
+
+    // 3. Otherwise, Find or create member in local database
     let existingUserIndex = db.users.findIndex(
       (u) => u.username === username || u.username === email
     );
@@ -74,12 +88,20 @@ export async function GET(req: Request) {
         status: initialStatus,
         creditsBalance: userRole === 'admin' ? 99999 : 100.0,
         createdAt: new Date().toISOString(),
+        googleConnected: true,
+        googleEmail: email,
+        googleAccessToken: accessToken,
+        googleConnectedAt: new Date().toISOString(),
       };
       db.users.push(newUser);
       saveDb(db);
       user = newUser;
     } else {
       user = db.users[existingUserIndex];
+      user.googleConnected = true;
+      user.googleEmail = email;
+      user.googleAccessToken = accessToken;
+      saveDb(db);
     }
 
     // 4. Check approval status

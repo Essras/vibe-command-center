@@ -26,6 +26,7 @@ export async function GET() {
       success: true,
       username: currentUser.username,
       creditsBalance: currentUser.creditsBalance,
+      user: currentUser.user,
       totalPromptTokens,
       totalCompletionTokens,
       totalTokens,

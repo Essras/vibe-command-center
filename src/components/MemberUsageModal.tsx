@@ -169,6 +169,47 @@ export const MemberUsageModal: React.FC<MemberUsageModalProps> = ({
             </div>
           </div>
 
+          {/* Google Drive Account Binding Card */}
+          <div className="p-4 rounded-2xl bg-gray-950 border border-gray-800 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-base shrink-0">
+                  📁
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white flex items-center gap-1.5">
+                    <span>ผูกบัญชี Google Drive สำหรับอ่าน/อัปโหลดไฟล์</span>
+                  </h4>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {stats?.user?.googleConnected
+                      ? `เชื่อมต่อกับ ${stats?.user?.googleEmail || 'Google Account'} เรียบร้อยแล้ว`
+                      : 'ผูกบัญชี Google เพื่อให้ระบบ AI อ่านและเขียนไฟล์ใน Google Drive ของคุณได้'}
+                  </p>
+                </div>
+              </div>
+
+              {stats?.user?.googleConnected ? (
+                <span className="px-3.5 py-1.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>เชื่อมต่อแล้ว ({stats?.user?.googleEmail})</span>
+                </span>
+              ) : (
+                <a
+                  href="/api/auth/google"
+                  className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition shrink-0"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
+                    <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z" />
+                    <path fill="#FBBC05" d="M5.6 14.8c-.3-.8-.4-1.7-.4-2.8s.1-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z" />
+                    <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z" />
+                  </svg>
+                  <span>🔗 ผูกบัญชี Google Drive</span>
+                </a>
+              )}
+            </div>
+          </div>
+
           {/* Top-up Package Modal Drawer */}
           {isTopupOpen && (
             <div className="p-4 rounded-2xl bg-gray-950 border border-indigo-500/40 space-y-3 animate-in fade-in duration-150">
