@@ -70,15 +70,53 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
+      const isImage = file.type.startsWith('image/');
+      
       reader.onload = (event) => {
-        const text = event.target?.result as string;
+        const content = event.target?.result as string;
         setAttachments((prev) => [
           ...prev,
-          { name: file.name, type: file.type || 'text/plain', content: text },
+          { name: file.name, type: file.type || 'text/plain', content },
         ]);
       };
-      reader.readAsText(file);
+
+      if (isImage) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.readAsText(file);
+      }
     });
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64Data = event.target?.result as string;
+          const fileName = file.name && file.name !== 'image.png'
+            ? file.name
+            : `clipboard-image-${Date.now()}.png`;
+
+          setAttachments((prev) => [
+            ...prev,
+            {
+              name: fileName,
+              type: file.type || 'image/png',
+              content: base64Data,
+            },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
   };
 
   const removeAttachment = (index: number) => {
@@ -185,16 +223,30 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 >
                   {/* Attachments preview */}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-gray-700/50">
-                      {msg.attachments.map((att, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center space-x-1.5 bg-black/20 text-[11px] px-2 py-0.5 rounded"
-                        >
-                          <FileText className="w-3 h-3 text-indigo-300" />
-                          <span className="truncate max-w-[150px]">{att.name}</span>
-                        </div>
-                      ))}
+                    <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-gray-700/50">
+                      {msg.attachments.map((att, i) => {
+                        const isImage = att.type?.startsWith('image/') || att.content?.startsWith('data:image/');
+                        return isImage ? (
+                          <div key={i} className="rounded-xl overflow-hidden border border-white/20 bg-black/40 max-w-xs">
+                            <img
+                              src={att.content}
+                              alt={att.name}
+                              className="max-h-48 object-contain rounded-xl"
+                            />
+                            <div className="p-1 text-[10px] text-gray-300 truncate bg-black/60 px-2">
+                              🖼️ {att.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            key={i}
+                            className="flex items-center space-x-1.5 bg-black/20 text-[11px] px-2 py-0.5 rounded-lg"
+                          >
+                            <FileText className="w-3 h-3 text-indigo-300" />
+                            <span className="truncate max-w-[150px]">{att.name}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -298,22 +350,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {/* Attachments Chips */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {attachments.map((att, i) => (
-                <div
-                  key={i}
-                  className="flex items-center space-x-1.5 bg-gray-800 border border-gray-700 text-xs text-gray-200 px-2.5 py-1 rounded-lg"
-                >
-                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="truncate max-w-[150px]">{att.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(i)}
-                    className="text-gray-400 hover:text-red-400 ml-1"
+              {attachments.map((att, i) => {
+                const isImage = att.type?.startsWith('image/') || att.content?.startsWith('data:image/');
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center space-x-1.5 bg-gray-800/90 border border-gray-700 text-xs text-gray-200 px-2.5 py-1 rounded-xl shadow-sm"
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+                    {isImage ? (
+                      <img
+                        src={att.content}
+                        alt={att.name}
+                        className="w-7 h-7 object-cover rounded-lg border border-indigo-500/50"
+                      />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                    )}
+                    <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(i)}
+                      className="text-gray-400 hover:text-red-400 ml-1 p-0.5 rounded-lg hover:bg-gray-700 transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -323,13 +386,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               ref={fileInputRef}
               onChange={handleFileUpload}
               multiple
+              accept="image/*,.txt,.js,.ts,.tsx,.jsx,.json,.py,.md,.css,.html"
               className="hidden"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="absolute left-3 p-1.5 text-gray-400 hover:text-indigo-400 rounded-lg hover:bg-gray-800 transition"
-              title="แนบไฟล์ (Text/Code/Doc)"
+              title="แนบไฟล์หรือรูปภาพ (Text/Code/Doc/Image)"
             >
               <Paperclip className="w-4 h-4" />
             </button>
@@ -338,13 +402,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={handlePaste}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit(e);
                 }
               }}
-              placeholder="พิมพ์คำสั่ง สั่งงาน Vibe Code หรือถาม AI... (Shift+Enter เพื่อขึ้นบรรทัดใหม่)"
+              placeholder="พิมพ์คำสั่ง สั่งงาน Vibe Code หรือวางภาพจาก Clipboard (Ctrl+V / Win+V)..."
               className="w-full bg-gray-950 border border-gray-800 rounded-2xl pl-11 pr-12 py-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none max-h-32"
             />
 
