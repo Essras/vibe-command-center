@@ -369,13 +369,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         )}
 
         {isLoading && (
-          <div className="flex space-x-3 items-center text-gray-400 text-xs">
+          <div className="flex space-x-3 items-center text-gray-400 text-xs my-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
               <RefreshCw className="w-4 h-4 animate-spin" />
             </div>
-            <div className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-xs flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-              <span>AI กำลังคิดและประมวลผลคำสั่ง...</span>
+            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl px-4 py-2 text-xs flex items-center gap-2.5 text-indigo-200 shadow-lg shadow-indigo-950/40">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <div className="flex flex-col">
+                <span className="font-medium text-emerald-400">🤖 AI กำลังประมวลผลคำสั่งระบบ...</span>
+                <span className="text-[11px] text-gray-400">คุณสามารถพิมพ์คำสั่งถัดไปรอไว้ล่วงหน้าได้ทันที</span>
+              </div>
             </div>
           </div>
         )}
