@@ -277,19 +277,10 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Mobile Bottom Dock (Touch Optimized, prevents top bar icon overlap) */}
+      {/* Mobile Bottom Dock (Floating Touch-Safe Segmented Control) */}
       <MobileBottomBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        projects={data?.projects || []}
-        activeProjectId={activeProjectId}
-        onSelectProject={setActiveProjectId}
-        onOpenProjectModal={() => setIsProjectModalOpen(true)}
-        favoriteModels={data?.favoriteModels || []}
-        activeModelId={activeModelId}
-        onSelectModel={handleSelectModel}
-        currentUser={data?.currentUser}
-        onOpenMemberUsage={() => setIsMemberUsageOpen(true)}
       />
 
       {/* Modals */}

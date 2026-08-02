@@ -121,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <div className="sticky top-0 z-30 shrink-0 select-none">
       {/* Primary Top Navbar */}
       <header className="h-14 border-b border-gray-800/80 bg-gray-950/95 backdrop-blur-md px-2.5 sm:px-4 flex items-center justify-between">
-        {/* Left: Brand & Workspace Selector */}
+        {/* Left: Brand & Mobile/Desktop Workspace Selectors */}
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 shrink">
           {/* Brand Logo */}
           <div className="flex items-center space-x-1.5 shrink-0">
@@ -131,14 +131,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="font-bold text-xs sm:text-sm text-gray-100 hidden xs:inline-block tracking-tight whitespace-nowrap">
               Vibe Hub
             </span>
-            <span className="text-[9px] sm:text-[10px] bg-indigo-500/20 text-indigo-400 font-bold px-1.5 py-0.2 rounded border border-indigo-500/30 hidden lg:inline-block">
-              PRO
-            </span>
           </div>
 
           <div className="h-4 sm:h-5 w-px bg-gray-800 shrink-0 hidden md:block" />
 
-          {/* Workspace Selector Dropdown (Desktop Only) */}
+          {/* Desktop Workspace Selector Dropdown (Desktop >= 768px) */}
           <div className="hidden md:flex items-center space-x-1 min-w-0">
             <div className="relative min-w-0">
               <select
@@ -162,6 +159,35 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
+          </div>
+
+          {/* Mobile Header Quick Actions (Workspace 📁 & Model ⚡ Icon Controls < 768px) */}
+          <div className="flex md:hidden items-center space-x-1.5 min-w-0">
+            {/* Workspace Button */}
+            <button
+              type="button"
+              onClick={onOpenProjectModal}
+              className="flex items-center space-x-1 px-2 py-1 rounded-xl bg-gray-900 border border-gray-800 text-xs font-semibold text-gray-200 hover:bg-gray-850 transition max-w-[105px] truncate cursor-pointer"
+              title="สลับ/จัดการโปรเจกต์"
+            >
+              <FolderKanban className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="truncate text-[11px] font-bold">
+                {projects.find((p) => p.id === activeProjectId)?.name || 'Workspace'}
+              </span>
+            </button>
+
+            {/* Model Selector Dropdown Icon */}
+            <div className="relative flex items-center bg-gray-900 border border-gray-800 rounded-xl px-2 py-1">
+              <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mr-1" />
+              <select
+                value={activeModelId}
+                onChange={(e) => onSelectModel(e.target.value)}
+                className="bg-transparent text-gray-200 font-bold text-[11px] focus:outline-none cursor-pointer pr-4 appearance-none max-w-[80px] truncate"
+              >
+                {renderModelSelectOptions()}
+              </select>
+              <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1 pointer-events-none shrink-0" />
+            </div>
           </div>
         </div>
 
