@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
-import child_process from 'child_process';
-import util from 'util';
 import fsSync from 'fs';
 import path from 'path';
 import { getCurrentUser } from '@/lib/auth';
-
-const execPromise = util.promisify(child_process.exec);
 
 export async function GET() {
   try {
@@ -14,64 +10,30 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let runningProcesses: string[] = [];
-
-    // 1. Direct Linux /proc filesystem inspection (works on Alpine, Debian, Ubuntu Docker containers 100%)
-    try {
-      if (fsSync.existsSync('/proc')) {
-        const pids = fsSync.readdirSync('/proc').filter((f) => /^\d+$/.test(f));
-        for (const pid of pids) {
-          try {
-            const cmdline = fsSync.readFileSync(`/proc/${pid}/cmdline`, 'utf-8').replace(/\0/g, ' ').trim();
-            if (
-              cmdline &&
-              !cmdline.includes('status/route') &&
-              (cmdline.includes('python') ||
-                cmdline.includes('ffmpeg') ||
-                cmdline.includes('auto_run') ||
-                cmdline.includes('whisper'))
-            ) {
-              runningProcesses.push(`[PID ${pid}] ${cmdline}`);
-            }
-          } catch (e) {
-            // Process terminated or non-readable
-          }
-        }
-      }
-    } catch (e) {
-      // Fallback
-    }
-
-    // 2. Fallback to command execution if /proc scanner found nothing
-    if (runningProcesses.length === 0) {
-      try {
-        const cmd = process.platform === 'win32'
-          ? 'tasklist'
-          : 'ps -ef | grep -E "python3|ffmpeg|auto_run|whisper" | grep -v grep';
-        const { stdout } = await execPromise(cmd);
-        runningProcesses = stdout
-          .trim()
-          .split('\n')
-          .filter((line) => {
-            const l = line.trim();
-            return (
-              l &&
-              (l.includes('python') ||
-                l.includes('ffmpeg') ||
-                l.includes('auto_run') ||
-                l.includes('whisper'))
-            );
-          });
-      } catch (e) {
-        // No processes running
-      }
-    }
-
-    // Check output files in workspace/video-editor/output
     const appRoot = process.cwd();
+    const workDir = path.join(appRoot, 'workspace/video-editor');
+
+    // ── Job State: Read flag file (written before spawn, deleted on script completion) ──
+    const flagPath = path.join(workDir, 'job_running.flag');
+    const isRunning = fsSync.existsSync(flagPath);
+    let jobStartedAt = '';
+    if (isRunning) {
+      try { jobStartedAt = fsSync.readFileSync(flagPath, 'utf-8').trim(); } catch (e) {}
+    }
+
+    // ── Live Log: Last 20 lines of auto_run.log ──
+    let logContent = '';
+    const autoLogPath = path.join(workDir, 'auto_run.log');
+    if (fsSync.existsSync(autoLogPath)) {
+      try {
+        const rawLog = fsSync.readFileSync(autoLogPath, 'utf-8');
+        logContent = rawLog.split('\n').filter(Boolean).slice(-20).join('\n');
+      } catch (e) {}
+    }
+
+    // ── Output Files ──
     const outputDir = path.join(appRoot, 'workspace/video-editor/output');
     let outputFiles: { name: string; sizeMB: string; modified: string }[] = [];
-
     if (fsSync.existsSync(outputDir)) {
       const entries = fsSync.readdirSync(outputDir, { withFileTypes: true });
       for (const entry of entries) {
@@ -86,36 +48,12 @@ export async function GET() {
       }
     }
 
-    // Check generated auto_run script logs in workspace/video-editor
-    const workDir = path.join(appRoot, 'workspace/video-editor');
-    let activeScripts: string[] = [];
-    if (fsSync.existsSync(workDir)) {
-      activeScripts = fsSync
-        .readdirSync(workDir)
-        .filter((f) => f.startsWith('auto_run_') && f.endsWith('.sh'));
-    }
-
-    // Check auto_run.log for real-time live logs
-    let logContent = '';
-    const autoLogPath = path.join(workDir, 'auto_run.log');
-    if (fsSync.existsSync(autoLogPath)) {
-      try {
-        const rawLog = fsSync.readFileSync(autoLogPath, 'utf-8');
-        const lines = rawLog.split('\n').filter(Boolean);
-        logContent = lines.slice(-20).join('\n');
-      } catch (e) {}
-    }
-
-    const isRunning = runningProcesses.length > 0;
-
     return NextResponse.json({
       success: true,
       status: isRunning ? 'PROCESSING' : 'IDLE',
       isRunning,
-      activeProcessesCount: runningProcesses.length,
-      runningProcesses,
-      activeScriptsCount: activeScripts.length,
-      activeScripts,
+      activeProcessesCount: isRunning ? 1 : 0,
+      runningProcesses: isRunning ? [`[JOB RUNNING since ${jobStartedAt}]`] : [],
       outputFiles,
       logContent,
       timestamp: new Date().toISOString(),
