@@ -43,6 +43,7 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
   onSaveSettings,
   onOpenDashboard,
 }) => {
+  const [modalTab, setModalTab] = useState<'providers' | 'telegram'>('providers');
   const [selectedProvider, setSelectedProvider] = useState<
     'gemini' | 'google' | 'openai' | 'claude' | 'openrouter' | 'okmd'
   >('gemini');
@@ -215,6 +216,8 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
     return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
   });
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -231,9 +234,121 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
           </button>
         </div>
 
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-gray-800 bg-gray-950 px-6 pt-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setModalTab('providers')}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+              modalTab === 'providers'
+                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>🤖 AI Providers & Keys</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModalTab('telegram')}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+              modalTab === 'telegram'
+                ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-400" />
+            <span>🔔 Telegram Notifications</span>
+            {formKeys.telegramBotToken && formKeys.telegramChatId ? (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/80" title="ตั้งค่า Telegram แล้ว" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="ยังไม่ได้ตั้งค่า Telegram" />
+            )}
+          </button>
+        </div>
+
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-gray-200">
-          {/* Admin Analytics & Token Metering Dashboard Banner */}
+          {modalTab === 'telegram' ? (
+            /* Dedicated Telegram Notification Tab View */
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/40 via-gray-900 to-gray-950 border border-amber-500/30 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <Bell className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-gray-100 flex items-center gap-2">
+                        <span>การเชื่อมต่อระบบแจ้งเตือน Telegram Bot</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                          LIVE ALERTS
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        รับแจ้งเตือนทันทีบนมือถือเมื่อเริ่มสั่งรันงาน VPS หรือตัดต่อวิดีโอเสร็จสมบูรณ์
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTestTelegram}
+                    disabled={testingTelegram}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    <span>{testingTelegram ? 'กำลังทดสอบ...' : '🧪 ทดสอบส่ง Telegram'}</span>
+                  </button>
+                </div>
+
+                {telegramMsg && (
+                  <div className="p-3 bg-indigo-950/80 border border-indigo-500/50 rounded-xl text-indigo-200 text-xs font-semibold">
+                    {telegramMsg}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Telegram Bot Token <span className="text-amber-400">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={formKeys.telegramBotToken || ''}
+                      onChange={(e) => setFormKeys({ ...formKeys, telegramBotToken: e.target.value })}
+                      placeholder="7123456789:AAE..."
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-300 block mb-1">
+                      Telegram Chat ID <span className="text-amber-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formKeys.telegramChatId || ''}
+                      onChange={(e) => setFormKeys({ ...formKeys, telegramChatId: e.target.value })}
+                      placeholder="123456789"
+                      className="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-gray-950 border border-gray-800 space-y-2 text-[11px] text-gray-300">
+                  <div className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                    <span>💡 วิธีหา Telegram Bot Token & Chat ID (3 ขั้นตอนง่ายๆ):</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1.5 text-gray-400 pl-1">
+                    <li>เปิดแอป Telegram ค้นหาบอท <code className="text-indigo-300 bg-gray-900 px-1.5 py-0.5 rounded font-mono">@BotFather</code> แล้วส่งข้อความ <code className="text-indigo-300 bg-gray-900 px-1.5 py-0.5 rounded font-mono">/newbot</code> เพื่อสร้างบอท จะได้ <b>Bot Token</b></li>
+                    <li>ค้นหาบอท <code className="text-indigo-300 bg-gray-900 px-1.5 py-0.5 rounded font-mono">@userinfobot</code> ใน Telegram แล้วกด <code className="text-indigo-300 bg-gray-900 px-1.5 py-0.5 rounded font-mono">/start</code> บอทจะบอก <b>Id: 123456789</b> ของคุณ</li>
+                    <li>ค้นหาชื่อบอทที่คุณสร้างขึ้นมา แล้วกดคำสั่ง <code className="text-indigo-300 bg-gray-900 px-1.5 py-0.5 rounded font-mono">/start</code> 1 ครั้ง เพื่อเปิดให้บอทเริ่มส่งข้อความเข้ามือถือคุณได้</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
           {onOpenDashboard && (
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-indigo-950/90 to-purple-950/90 border border-purple-500/50 flex items-center justify-between shadow-xl">
               <div className="flex items-center gap-3">
@@ -489,54 +604,6 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
             )}
           </div>
 
-          {/* Telegram Bot Notification Settings */}
-          <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-200 flex items-center gap-1.5 text-xs">
-                <Bell className="w-4 h-4 text-amber-400" />
-                <span>การเชื่อมต่อแจ้งเตือนผ่าน Telegram Bot</span>
-              </h3>
-              <button
-                type="button"
-                onClick={handleTestTelegram}
-                disabled={testingTelegram}
-                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs flex items-center gap-1 transition shadow disabled:opacity-50"
-              >
-                <span>{testingTelegram ? 'กำลังทดสอบ...' : '🧪 ทดสอบส่ง Telegram'}</span>
-              </button>
-            </div>
-
-            {telegramMsg && (
-              <div className="p-2 bg-indigo-950/60 border border-indigo-500/40 rounded text-indigo-300 text-[11px]">
-                {telegramMsg}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] text-gray-400 block mb-1">Telegram Bot Token</label>
-                <input
-                  type="password"
-                  value={formKeys.telegramBotToken || ''}
-                  onChange={(e) => setFormKeys({ ...formKeys, telegramBotToken: e.target.value })}
-                  placeholder="7123456789:AAE..."
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-gray-400 block mb-1">Telegram Chat ID</label>
-                <input
-                  type="text"
-                  value={formKeys.telegramChatId || ''}
-                  onChange={(e) => setFormKeys({ ...formKeys, telegramChatId: e.target.value })}
-                  placeholder="123456789"
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* 3. Dynamic Live Fetching of Models from Provider */}
           <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-3">
             <div className="flex items-center justify-between">
@@ -775,6 +842,8 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
             </div>
           )}
         </div>
+      )}
+    </div>
 
         {/* Modal Footer */}
         <div className="px-6 py-4 border-t border-gray-800 bg-gray-950 flex justify-end space-x-3">
