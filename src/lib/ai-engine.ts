@@ -298,13 +298,13 @@ export async function executeAIRequestWithFallback(
           parsedErr = typeof jsonErr.error === 'string' ? jsonErr.error : jsonErr.error?.message || jsonErr.message || errText;
           if (
             res.status === 429 ||
-            res.status === 503 ||
             jsonErr.error?.code === 429 ||
             jsonErr.error?.status === 'RESOURCE_EXHAUSTED' ||
+            jsonErr.error?.type === 'rate_limit_exceeded' ||
             parsedErr.toLowerCase().includes('rate limit') ||
-            parsedErr.toLowerCase().includes('quota') ||
-            parsedErr.toLowerCase().includes('service is unavailable') ||
-            parsedErr.toLowerCase().includes('unavailable')
+            parsedErr.toLowerCase().includes('rate_limit') ||
+            parsedErr.toLowerCase().includes('resource_exhausted') ||
+            parsedErr.toLowerCase().includes('quota exceeded')
           ) {
             is429Err = true;
           }
