@@ -31,7 +31,17 @@ export async function downloadGDriveFileToWorkspace(
 ): Promise<GDriveDownloadResult> {
   try {
     const appRoot = process.cwd();
-    const destDir = path.resolve(appRoot, targetFolder);
+    const vpsRoot = process.env.VPS_ROOT_PATH;
+    const cleanTargetFolder = targetFolder.trim().replace(/^(\.\/|\/)/, '');
+
+    let destDir = path.resolve(appRoot, cleanTargetFolder);
+    if (!fsSync.existsSync(destDir) && vpsRoot && fsSync.existsSync(vpsRoot)) {
+      const vpsTarget = path.resolve(vpsRoot, 'root/vibe-command-center', cleanTargetFolder);
+      if (fsSync.existsSync(vpsTarget)) {
+        destDir = vpsTarget;
+      }
+    }
+
     if (!fsSync.existsSync(destDir)) {
       await fs.mkdir(destDir, { recursive: true });
     }
