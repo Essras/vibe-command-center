@@ -252,10 +252,9 @@ if [ -n "$INPUT_FILE" ]; then
   BASENAME=$(basename "$INPUT_FILE")
   OUTPUT_FILE="output/draft_$BASENAME"
   if [ ! -f "$OUTPUT_FILE" ]; then
-    echo "[FALLBACK] AI commands produced no output. Running simple encode..."
+    echo "[FALLBACK] AI commands produced no output or failed. Running clean fallback encode..."
     ffmpeg -y -i "$INPUT_FILE" \\
-      -vf "drawtext=text='DRAFT - AUTO PROCESSED':x=(w-text_w)/2:y=60:fontsize=40:fontcolor=white:box=1:boxcolor=black@0.5" \\
-      -c:v libx264 -preset fast -crf 26 -c:a aac -b:a 128k \\
+      -c:v libx264 -preset fast -crf 26 -c:a copy \\
       "$OUTPUT_FILE" && echo "[FALLBACK] Done: $OUTPUT_FILE"
   else
     echo "[SUCCESS] Output exists: $OUTPUT_FILE"

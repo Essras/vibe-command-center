@@ -19,6 +19,9 @@ import {
   RefreshCw,
   Globe,
   Cpu,
+  CheckCircle2,
+  Terminal,
+  FileVideo,
 } from 'lucide-react';
 import { FavoriteModel, Project } from '@/lib/db';
 
@@ -84,25 +87,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [openStatusModalSignal]);
 
-  useEffect(() => {
-    const checkVpsStatus = async () => {
-      try {
-        const res = await fetch('/api/system/status');
-        const data = await res.json();
-        if (data.success) {
-          setVpsStatus({
-            isRunning: data.isRunning,
-            runningProcesses: data.runningProcesses || [],
-            outputFiles: data.outputFiles || [],
-            activeProcessesCount: data.activeProcessesCount || 0,
-            logContent: data.logContent || '',
-          });
-        }
-      } catch (e) {}
-    };
+  const checkVpsStatus = async () => {
+    try {
+      const res = await fetch('/api/system/status');
+      const data = await res.json();
+      if (data.success) {
+        setVpsStatus({
+          isRunning: data.isRunning,
+          runningProcesses: data.runningProcesses || [],
+          outputFiles: data.outputFiles || [],
+          activeProcessesCount: data.activeProcessesCount || 0,
+          logContent: data.logContent || '',
+        });
+      }
+    } catch (e) {}
+  };
 
+  useEffect(() => {
     checkVpsStatus();
-    const interval = setInterval(checkVpsStatus, 5000);
+    const interval = setInterval(checkVpsStatus, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -276,6 +279,94 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Live VPS Processing & Execution Log Banner (Always visible on screen) */}
+      {(vpsStatus.isRunning || vpsStatus.logContent || vpsStatus.outputFiles.length > 0) && (
+        <div className={`px-4 py-2.5 border-b text-xs transition-all shrink-0 ${
+          vpsStatus.isRunning
+            ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+            : vpsStatus.outputFiles.length > 0
+              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+              : 'bg-gray-900/60 border-gray-800 text-gray-300'
+        }`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-semibold">
+              {vpsStatus.isRunning ? (
+                <span className="flex items-center gap-2 text-amber-300 animate-pulse font-bold">
+                  <Cpu className="w-4 h-4 text-amber-400 animate-spin" />
+                  ⚡ [VPS RUNNING] กำลังรันสคริปต์ประมวลผลตัดต่อวิดีโอ...
+                </span>
+              ) : vpsStatus.outputFiles.length > 0 ? (
+                <span className="flex items-center gap-2 text-emerald-300 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  🎉 [JOB COMPLETED] ไฟล์ผลลัพธ์พร้อมใช้งานใน output/ ({vpsStatus.outputFiles.length} ไฟล์)
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-gray-300">
+                  <Terminal className="w-4 h-4 text-emerald-400" />
+                  📋 รายงานและ Log การทำงานล่าสุดบน VPS
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => checkVpsStatus()}
+                className="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-[11px] text-gray-300 transition flex items-center gap-1 cursor-pointer border border-gray-700"
+                title="อัปเดตสถานะล่าสุดทันที"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>รีเฟรช Log</span>
+              </button>
+              <button
+                onClick={() => setShowStatusModal(true)}
+                className="px-2 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/60 text-[11px] text-indigo-200 transition cursor-pointer border border-indigo-500/30"
+              >
+                ป๊อปอัปขยาย 🔍
+              </button>
+            </div>
+          </div>
+
+          {/* Live Execution Log (auto_run.log) directly visible on screen */}
+          {vpsStatus.logContent && (
+            <div className="mt-2 font-mono text-[11px] bg-black/80 p-2.5 rounded-lg border border-gray-800 text-emerald-400 overflow-x-auto max-h-32">
+              <div className="text-[10px] text-gray-400 mb-1 font-sans flex justify-between border-b border-gray-800/80 pb-1">
+                <span className="font-bold text-gray-300 flex items-center gap-1">
+                  <Terminal className="w-3 h-3 text-amber-400" />
+                  📋 Live Execution Log (auto_run.log บนหน้าจอสด):
+                </span>
+                <span className={vpsStatus.isRunning ? 'text-amber-400 animate-pulse font-bold' : 'text-emerald-400 font-bold'}>
+                  {vpsStatus.isRunning ? '🔄 กำลังทำงาน...' : '✅ ทำงานเสร็จแล้ว'}
+                </span>
+              </div>
+              <pre className="whitespace-pre-wrap break-all leading-relaxed">
+                {vpsStatus.logContent.split('\n').slice(-6).join('\n')}
+              </pre>
+            </div>
+          )}
+
+          {/* Output Files Download Quick-Bar */}
+          {vpsStatus.outputFiles.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] bg-emerald-950/70 p-2 rounded-lg border border-emerald-500/30">
+              <span className="font-bold text-emerald-300 flex items-center gap-1">
+                <FileVideo className="w-3.5 h-3.5 text-emerald-400" />
+                ไฟล์ผลลัพธ์พร้อมดาวน์โหลด (output/):
+              </span>
+              {vpsStatus.outputFiles.map((f, i) => (
+                <a
+                  key={i}
+                  href={`/vps_data/workspace/video-editor/output/${f.name}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1 transition shadow-sm"
+                >
+                  🎬 {f.name} ({f.sizeMB} MB)
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">

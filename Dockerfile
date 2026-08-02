@@ -34,8 +34,12 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     curl \
+    ttf-freefont \
+    fontconfig \
+    && fc-cache -f \
     && pip3 install --no-cache-dir --break-system-packages requests \
     && rm -rf /root/.cache
+
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
