@@ -136,6 +136,9 @@ export default function DashboardPage() {
               if (parsed.text) {
                 assistantContent += parsed.text;
               }
+              if (parsed.error) {
+                assistantContent += `\n\n⚠️ **เกิดข้อผิดพลาด:** ${parsed.error}`;
+              }
               if (parsed.modelUsed) {
                 modelUsed = parsed.modelUsed;
               }
