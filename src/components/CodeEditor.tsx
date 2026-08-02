@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Folder,
@@ -13,6 +13,7 @@ import {
   Trash2,
   Code2,
   FileCode,
+  Upload,
 } from 'lucide-react';
 import { Project } from '@/lib/db';
 
@@ -34,6 +35,40 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [mobileTab, setMobileTab] = useState<'files' | 'editor'>('files');
+  const editorFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setStatusMsg('กำลังอัปโหลดไฟล์...');
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        try {
+          await fetch('/api/files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'upload',
+              path: currentDir,
+              filename: file.name,
+              base64,
+            }),
+          });
+          fetchFiles(currentDir);
+          setStatusMsg(`อัปโหลด ${file.name} เรียบร้อยแล้ว!`);
+          setTimeout(() => setStatusMsg(''), 4000);
+        } catch (err) {
+          console.error('Upload failed:', err);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const fetchFiles = async (dirPath: string = '.') => {
     try {
@@ -170,6 +205,22 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
               </span>
             </div>
             <div className="flex items-center space-x-1">
+              <input
+                type="file"
+                ref={editorFileInputRef}
+                onChange={handleDirectUpload}
+                multiple
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => editorFileInputRef.current?.click()}
+                className="p-1.5 hover:bg-emerald-950/80 text-emerald-400 hover:text-emerald-300 rounded border border-emerald-500/30 transition flex items-center gap-1 text-[11px]"
+                title="อัปโหลดไฟล์สื่อจากคอมพิวเตอร์เข้าสู่โฟลเดอร์นี้"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="font-semibold hidden sm:inline">อัปโหลด</span>
+              </button>
               <button
                 onClick={handleCreateNewFile}
                 className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded"

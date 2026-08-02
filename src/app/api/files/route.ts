@@ -85,6 +85,21 @@ export async function POST(req: Request) {
     const { action, path: reqPath, content, isDirectory } = body;
     const targetPath = getSafePath(reqPath || '.');
 
+    if (action === 'upload') {
+      const { filename, base64 } = body;
+      if (!filename || !base64) {
+        return NextResponse.json({ error: 'Missing filename or base64 data' }, { status: 400 });
+      }
+      const fileBuffer = Buffer.from(base64.replace(/^data:.*?;base64,/, ''), 'base64');
+      const targetFilePath = getSafePath(path.join(reqPath || '.', filename));
+      const dir = path.dirname(targetFilePath);
+      if (!fsSync.existsSync(dir)) {
+        await fs.mkdir(dir, { recursive: true });
+      }
+      await fs.writeFile(targetFilePath, fileBuffer);
+      return NextResponse.json({ success: true, message: 'File uploaded successfully' });
+    }
+
     if (action === 'save') {
       const dir = path.dirname(targetPath);
       if (!fsSync.existsSync(dir)) {
