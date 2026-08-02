@@ -18,6 +18,14 @@ export interface StreamChunk {
   done?: boolean;
 }
 
+export function cleanModelId(rawId: string): string {
+  if (!rawId) return '';
+  return rawId
+    .replace(/^\[(FREE|PAID|FREE TIER|FREE QUOTA).*?\]\s*/i, '')
+    .replace(/🟢|💳|⚡|⚖️|🧠|👁️/g, '')
+    .trim();
+}
+
 export function getProviderApiKey(provider: string, keys: ProviderKeys): string {
   if (provider === 'gemini') return keys.geminiApiKey || process.env.GEMINI_API_KEY || '';
   if (provider === 'openai') return keys.openaiApiKey || process.env.OPENAI_API_KEY || '';
@@ -34,8 +42,10 @@ export async function callAIProvider(
   keys: ProviderKeys
 ): Promise<Response> {
   const provider = model.provider;
-  const modelId = model.id;
-  const apiKey = getProviderApiKey(provider, keys);
+  const rawModelId = model.id;
+  const modelId = cleanModelId(rawModelId);
+  const rawApiKey = getProviderApiKey(provider, keys);
+  const apiKey = rawApiKey.replace(/^Bearer\s+/i, '').trim();
 
   if (!apiKey) {
     throw new Error(`ยังไม่ได้กรอก API Key สำหรับ Provider: ${provider.toUpperCase()}`);
@@ -77,10 +87,10 @@ export async function callAIProvider(
     } else if (provider === 'openrouter') {
       baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
     } else if (provider === 'okmd') {
-      const rawBase = keys.okmdBaseUrl
+      const okmdBase = keys.okmdBaseUrl
         ? keys.okmdBaseUrl.replace(/\/$/, '')
         : 'https://gen.ai.kku.ac.th/okmd/api/v1';
-      baseUrl = `${rawBase}/chat/completions`;
+      baseUrl = `${okmdBase}/chat/completions`;
     }
 
     const formattedMessages: any[] = [];
@@ -108,23 +118,16 @@ export async function callAIProvider(
     }
 
     if (provider === 'okmd') {
-      const cleanKey = apiKey.replace(/^Bearer\s+/i, '').trim();
-      const okmdBase = keys.okmdBaseUrl
-        ? keys.okmdBaseUrl.replace(/\/$/, '')
-        : 'https://gen.ai.kku.ac.th/okmd/api/v1';
-
-      const targetUrl = `${okmdBase}/chat/completions`;
-
       let okmdModel: any = modelId;
       if (!isNaN(Number(modelId)) && modelId.trim() !== '') {
         okmdModel = Number(modelId);
       }
 
-      return fetch(targetUrl, {
+      return fetch(baseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${cleanKey}`,
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           model: okmdModel,
