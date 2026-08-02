@@ -7,6 +7,7 @@ import { getDb, saveDb } from '@/lib/db';
 import { executeAIRequestWithFallback } from '@/lib/ai-engine';
 import { getCurrentUser } from '@/lib/auth';
 import { extractGDriveId, downloadGDriveFileToWorkspace } from '@/lib/gdrive';
+import { sendTelegramAlert } from '@/lib/telegram';
 
 function getWorkspaceFileContext(vpsFolder: string = 'workspace/video-editor'): string {
   try {
@@ -115,6 +116,10 @@ export async function POST(req: Request) {
 
             if (downloadRes.success) {
               lastUserMsg.content += `\n\n[📢 ระบบเซิร์ฟเวอร์แจ้งเตือน AI: ได้ทำการดาวน์โหลดไฟล์สื่อจาก Google Drive (ID: ${gdriveId}) เข้าสู่โฟลเดอร์ "${downloadRes.filePath}" เรียบร้อยแล้ว! ไฟล์พร้อมใช้งานสำหรับกระบวนการตัดต่อ, FFmpeg, Python และ Easy AI Editor แล้ว จงเริ่มประมวลผลต่อได้ทันที]`;
+              sendTelegramAlert(
+                `📥 <b>ดาวน์โหลดไฟล์สื่อสำเร็จ!</b>\n\nระบบดาวน์โหลดไฟล์จาก Google Drive เข้าสู่ <code>${downloadRes.filePath}</code> เรียบร้อยแล้ว พร้อมสำหรับตัดต่อแล้วครับ!`,
+                'https://vibe.zodiacpsych.com'
+              );
             }
           }
         }
@@ -205,6 +210,20 @@ export async function POST(req: Request) {
                 detached: true,
                 stdio: 'ignore',
               });
+
+              // Send Telegram alert on job start
+              sendTelegramAlert(
+                `⚙️ <b>เริ่มรันงานตัดต่อวิดีโอบน VPS!</b>\n\nเซิร์ฟเวอร์ VPS ได้เริ่มสั่งรันสคริปต์ประมวลผลวิดีโอในหลังบ้านแล้วครับ!\n\n💡 คุณสามารถปิดคอมพิวเตอร์พับจอไปได้เลยครับ เมื่อเรนเดอร์เสร็จแล้วระบบจะส่งข้อความแจ้งเตือนให้ทราบอีกครั้ง!`,
+                'https://vibe.zodiacpsych.com'
+              );
+
+              child.on('exit', (code) => {
+                sendTelegramAlert(
+                  `🎉 <b>ตัดต่อและเรนเดอร์วิดีโอเสร็จสมบูรณ์ 100%!</b>\n\nไฟล์ผลลัพธ์ถูกนำไปวางไว้ในโฟลเดอร์ <code>${targetWorkspace}/output/</code> เรียบร้อยแล้วครับ!\n\nเปิดดูหรือดาวน์โหลดได้ทันทีผ่าน Vibe Command Center`,
+                  'https://vibe.zodiacpsych.com'
+                );
+              });
+
               child.unref();
 
               const autoExecNotice = `\n\n---\n⚡ 🚀 **[ระบบทำการรันสคริปต์ในหลังบ้านให้อัตโนมัติ 100% (Auto VPS Background Execution)]:**\nเซิร์ฟเวอร์ VPS ได้ทำการสั่งรันสคริปต์ประมวลผลตัดต่อวิดีโอนี้ในเบื้องหลังให้อัตโนมัติเรียบร้อยแล้ว!\n• **สคริปต์ที่รันบน VPS**: \n\`\`\`bash\n${commandsToRun.join('\n')}\n\`\`\`\n• **โฟลเดอร์ผลลัพธ์**: \`${targetWorkspace}/output/\`\n💡 **คุณสามารถปิดคอมพิวเตอร์พับจอไปได้ทันทีครับ!** เซิร์ฟเวอร์จะทำงานต่อในหลังบ้านจนเสร็จสมบูรณ์ และส่งไฟล์ผลลัพธ์ไปเก็บในโฟลเดอร์ \`output/\` สำหรับเปิดดูเมื่อคุณเปิดคอมกลับมา`;

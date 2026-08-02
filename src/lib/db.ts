@@ -16,6 +16,8 @@ export interface ProviderKeys {
   okmdBaseUrl?: string;
   googleClientId?: string;
   googleClientSecret?: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 export interface Project {

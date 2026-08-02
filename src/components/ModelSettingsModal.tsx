@@ -16,6 +16,7 @@ import {
   Trash2,
   Search,
   BarChart3,
+  Bell,
 } from 'lucide-react';
 import { FavoriteModel, ProviderKeys } from '@/lib/db';
 
@@ -74,6 +75,28 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
     data?: any;
     error?: string;
   }>({ loading: false });
+
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramMsg, setTelegramMsg] = useState('');
+
+  const handleTestTelegram = async () => {
+    setTestingTelegram(true);
+    setTelegramMsg('');
+    try {
+      await onSaveSettings(formKeys, fallbackChecked, favorites);
+      const res = await fetch('/api/admin/telegram-test', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setTelegramMsg(`✅ ${data.message}`);
+      } else {
+        setTelegramMsg(`⚠️ ${data.error}`);
+      }
+    } catch (err: any) {
+      setTelegramMsg(`⚠️ เกิดข้อผิดพลาด: ${err.message}`);
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -464,6 +487,54 @@ export const ModelSettingsModal: React.FC<ModelSettingsModalProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Telegram Bot Notification Settings */}
+          <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-200 flex items-center gap-1.5 text-xs">
+                <Bell className="w-4 h-4 text-amber-400" />
+                <span>การเชื่อมต่อแจ้งเตือนผ่าน Telegram Bot</span>
+              </h3>
+              <button
+                type="button"
+                onClick={handleTestTelegram}
+                disabled={testingTelegram}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs flex items-center gap-1 transition shadow disabled:opacity-50"
+              >
+                <span>{testingTelegram ? 'กำลังทดสอบ...' : '🧪 ทดสอบส่ง Telegram'}</span>
+              </button>
+            </div>
+
+            {telegramMsg && (
+              <div className="p-2 bg-indigo-950/60 border border-indigo-500/40 rounded text-indigo-300 text-[11px]">
+                {telegramMsg}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-gray-400 block mb-1">Telegram Bot Token</label>
+                <input
+                  type="password"
+                  value={formKeys.telegramBotToken || ''}
+                  onChange={(e) => setFormKeys({ ...formKeys, telegramBotToken: e.target.value })}
+                  placeholder="7123456789:AAE..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] text-gray-400 block mb-1">Telegram Chat ID</label>
+                <input
+                  type="text"
+                  value={formKeys.telegramChatId || ''}
+                  onChange={(e) => setFormKeys({ ...formKeys, telegramChatId: e.target.value })}
+                  placeholder="123456789"
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+            </div>
           </div>
 
           {/* 3. Dynamic Live Fetching of Models from Provider */}
