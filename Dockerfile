@@ -33,9 +33,9 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     py3-setuptools \
-    && pip3 install --no-cache-dir --break-system-packages \
-    openai-whisper \
-    && rm -rf /root/.cache
+    && pip3 install --no-cache-dir --break-system-packages "setuptools>=65" \
+    && pip3 install --no-cache-dir --break-system-packages --no-build-isolation openai-whisper \
+    && rm -rf /root/.cache /tmp/pip-*
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
