@@ -60,6 +60,40 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [vpsStatus, setVpsStatus] = useState<{
+    isRunning: boolean;
+    runningProcesses: string[];
+    outputFiles: { name: string; sizeMB: string; modified: string }[];
+    activeProcessesCount: number;
+  }>({
+    isRunning: false,
+    runningProcesses: [],
+    outputFiles: [],
+    activeProcessesCount: 0,
+  });
+  const [showStatusModal, setShowStatusModal] = useState(false);
+
+  useEffect(() => {
+    const checkVpsStatus = async () => {
+      try {
+        const res = await fetch('/api/system/status');
+        const data = await res.json();
+        if (data.success) {
+          setVpsStatus({
+            isRunning: data.isRunning,
+            runningProcesses: data.runningProcesses || [],
+            outputFiles: data.outputFiles || [],
+            activeProcessesCount: data.activeProcessesCount || 0,
+          });
+        }
+      } catch (e) {}
+    };
+
+    checkVpsStatus();
+    const interval = setInterval(checkVpsStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAddGDriveLink = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!gdriveUrlInput.trim()) return;
@@ -203,6 +237,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         <div className="flex items-center space-x-2 shrink-0">
+          <button
+            onClick={() => setShowStatusModal(true)}
+            className={`px-2.5 py-1 text-[11px] font-medium rounded-lg flex items-center gap-1.5 transition border ${
+              vpsStatus.isRunning
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 animate-pulse'
+                : 'bg-gray-800/80 text-gray-300 border-gray-700 hover:bg-gray-800'
+            }`}
+            title="คลิกเพื่อดูสถานะโปรเซสงานบน VPS"
+          >
+            <span className={`w-2 h-2 rounded-full ${vpsStatus.isRunning ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
+            <span>
+              {vpsStatus.isRunning
+                ? `VPS: กำลังรันงาน (${vpsStatus.activeProcessesCount})`
+                : 'VPS Status: พร้อมใช้งาน'}
+            </span>
+          </button>
+
           <button
             onClick={onClearHistory}
             className="p-1 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-800 transition flex items-center gap-1 text-[11px]"
@@ -603,6 +654,71 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VPS Status Detail Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-sm font-bold text-gray-100 flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${vpsStatus.isRunning ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+                สถานะระบบและการประมวลผลบน VPS
+              </h3>
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="text-gray-400 hover:text-gray-200 text-xs px-2 py-1 bg-gray-800 rounded"
+              >
+                ✕ ปิด
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-gray-400">สถานะเซิร์ฟเวอร์: </span>
+                <span className={`font-bold ${vpsStatus.isRunning ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {vpsStatus.isRunning ? '⚙️ กำลังตัดต่อ/เรนเดอร์ในหลังบ้าน' : '💤 พร้อมรับงานใหม่ (ไม่มีโปรเซสค้าง)'}
+                </span>
+              </div>
+
+              {vpsStatus.runningProcesses.length > 0 && (
+                <div>
+                  <div className="font-semibold text-gray-300 mb-1">โปรเซสที่กำลังรันบน VPS ({vpsStatus.runningProcesses.length}):</div>
+                  <div className="bg-gray-950 p-2.5 rounded border border-gray-800 font-mono text-[11px] text-amber-300 max-h-36 overflow-y-auto space-y-1">
+                    {vpsStatus.runningProcesses.map((p, i) => (
+                      <div key={i} className="truncate">• {p}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="font-semibold text-gray-300 mb-1">ไฟล์ในโฟลเดอร์ output/ ({vpsStatus.outputFiles.length}):</div>
+                {vpsStatus.outputFiles.length === 0 ? (
+                  <div className="text-gray-500 italic bg-gray-950 p-2 rounded border border-gray-850">ยังไม่มีไฟล์ในโฟลเดอร์ output/</div>
+                ) : (
+                  <div className="bg-gray-950 p-2.5 rounded border border-gray-800 space-y-1.5 max-h-36 overflow-y-auto">
+                    {vpsStatus.outputFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between text-gray-300">
+                        <span className="truncate font-mono text-[11px] text-indigo-300">📹 {f.name}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">{f.sizeMB} MB</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-gray-800 flex justify-end">
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg"
+              >
+                รับทราบ
+              </button>
             </div>
           </div>
         </div>
