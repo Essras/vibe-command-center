@@ -181,10 +181,11 @@ export async function POST(req: Request) {
                 cleanCode.includes('easy_ai_editor') ||
                 cleanCode.includes('whisper') ||
                 cleanCode.includes('#!/bin/bash') ||
-                cleanCode.includes('input/'))
+                cleanCode.includes('input/') ||
+                cleanCode.includes('subprocess'))
             ) {
               commandsToRun.push(cleanCode);
-              break;
+              // Don't break — collect ALL code blocks to build a full pipeline script
             }
           }
         }
@@ -214,7 +215,18 @@ export async function POST(req: Request) {
             const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
 
             const logPath = path.join(workDir, 'auto_run.log');
-            const scriptContent = `#!/bin/bash\nexec > "${logPath}" 2>&1\ncd "${workDir}"\nmkdir -p input output temp transcript reports\nln -s . workspace 2>/dev/null || true\n` + commandsToRun.join('\n');
+
+            // Smart-join: wrap Python-only blocks as python3 heredoc
+            const wrappedBlocks = commandsToRun.map((code, idx) => {
+              const isBashBlock = code.includes('ffmpeg') || code.includes('#!/') || code.includes('mkdir') || code.startsWith('#');
+              const isPythonBlock = (code.includes('import ') || code.includes('def ') || code.includes('subprocess')) && !isBashBlock;
+              if (isPythonBlock) {
+                return `python3 << 'PYEOF_${idx}'\n${code}\nPYEOF_${idx}`;
+              }
+              return code;
+            });
+
+            const scriptContent = `#!/bin/bash\nexec > "${logPath}" 2>&1\ncd "${workDir}"\nmkdir -p input output temp transcript reports\nln -s . workspace 2>/dev/null || true\n\n${wrappedBlocks.join('\n\n')}`;
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
