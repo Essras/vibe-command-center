@@ -109,70 +109,29 @@ export async function callAIProvider(
 
     if (provider === 'okmd') {
       const cleanKey = apiKey.replace(/^Bearer\s+/i, '').trim();
+      const okmdBase = keys.okmdBaseUrl
+        ? keys.okmdBaseUrl.replace(/\/$/, '')
+        : 'https://gen.ai.kku.ac.th/okmd/api/v1';
 
-      const headersOptions: Record<string, string>[] = [
-        {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${cleanKey}`,
-          'api-key': cleanKey,
-          'x-api-key': cleanKey,
-        },
-        {
-          'Content-Type': 'application/json',
-          Authorization: cleanKey,
-          'api-key': cleanKey,
-        },
-      ];
+      const targetUrl = `${okmdBase}/chat/completions`;
 
-      const urlOptions = Array.from(
-        new Set([
-          baseUrl,
-          'https://gen.ai.kku.ac.th/okmd/api/v1/chat/completions',
-          'https://playground.okmd.or.th/api/v1/chat/completions',
-          'https://gen.ai.kku.ac.th/api/v1/chat/completions',
-        ])
-      );
-
-      // Normalize OKMD display names (e.g. "[FREE QUOTA 🟢] Claude") to standard OKMD model strings
-      let okmdModel = modelId;
-      const lower = modelId.toLowerCase();
-      if (lower.includes('claude')) okmdModel = 'claude-3-5-sonnet';
-      else if (lower.includes('gemini')) okmdModel = 'gemini-1.5-flash';
-      else if (lower.includes('deepseek')) okmdModel = 'deepseek-chat';
-      else if (lower.includes('openai') || lower.includes('gpt')) okmdModel = 'gpt-4o-mini';
-      else if (lower.includes('qwen')) okmdModel = 'qwen-2.5-coder-32b-instruct';
-      else if (lower.includes('xai') || lower.includes('grok')) okmdModel = 'grok-2';
-      else if (lower.includes('auto')) okmdModel = 'auto';
-
-      let lastRes: Response | null = null;
-
-      for (const targetUrl of urlOptions) {
-        for (const headersObj of headersOptions) {
-          try {
-            const res = await fetch(targetUrl, {
-              method: 'POST',
-              headers: headersObj,
-              body: JSON.stringify({
-                model: okmdModel,
-                messages: formattedMessages,
-                stream: true,
-              }),
-            });
-
-            if (res.ok || res.status === 200) {
-              return res;
-            }
-            lastRes = res;
-          } catch (err) {}
-        }
+      let okmdModel: any = modelId;
+      if (!isNaN(Number(modelId)) && modelId.trim() !== '') {
+        okmdModel = Number(modelId);
       }
 
-      return (
-        lastRes ||
-        new Response(JSON.stringify({ error: 'ไม่สามารถเชื่อมต่อ OKMD Endpoint ได้' }), {
-          status: 401,
-        })
-      );
+      return fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cleanKey}`,
+        },
+        body: JSON.stringify({
+          model: okmdModel,
+          messages: formattedMessages,
+          stream: true,
+        }),
+      });
     }
 
     return fetch(baseUrl, {
