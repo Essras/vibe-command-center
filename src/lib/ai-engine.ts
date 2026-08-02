@@ -256,12 +256,16 @@ export async function executeAIRequestWithFallback(
 
         try {
           const jsonErr = JSON.parse(errText);
-          parsedErr = jsonErr.error?.message || jsonErr.message || errText;
+          parsedErr = typeof jsonErr.error === 'string' ? jsonErr.error : jsonErr.error?.message || jsonErr.message || errText;
           if (
+            res.status === 429 ||
+            res.status === 503 ||
             jsonErr.error?.code === 429 ||
             jsonErr.error?.status === 'RESOURCE_EXHAUSTED' ||
             parsedErr.toLowerCase().includes('rate limit') ||
-            parsedErr.toLowerCase().includes('quota')
+            parsedErr.toLowerCase().includes('quota') ||
+            parsedErr.toLowerCase().includes('service is unavailable') ||
+            parsedErr.toLowerCase().includes('unavailable')
           ) {
             is429Err = true;
           }
