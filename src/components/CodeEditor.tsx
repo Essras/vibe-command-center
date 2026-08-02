@@ -14,6 +14,7 @@ import {
   Code2,
   FileCode,
   Upload,
+  Edit2,
 } from 'lucide-react';
 import { Project } from '@/lib/db';
 
@@ -102,6 +103,64 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRenameFile = async (item: FileItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newName = prompt(`เปลี่ยนชื่อ "${item.name}" เป็น:`, item.name);
+    if (!newName || newName.trim() === '' || newName === item.name) return;
+
+    try {
+      const res = await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rename',
+          oldPath: item.path,
+          newName: newName.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchFiles(currentDir);
+        setStatusMsg(`เปลี่ยนชื่อเป็น ${newName.trim()} เรียบร้อยแล้ว!`);
+        setTimeout(() => setStatusMsg(''), 4000);
+      } else {
+        alert(data.error || 'ไม่สามารถเปลี่ยนชื่อได้');
+      }
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการเปลี่ยนชื่อ');
+    }
+  };
+
+  const handleDeleteFile = async (item: FileItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`คุณต้องการลบ "${item.name}" ใช่หรือไม่?`)) return;
+
+    try {
+      const res = await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          path: item.path,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (activeFilePath === item.path) {
+          setActiveFilePath(null);
+          setFileContent('');
+        }
+        fetchFiles(currentDir);
+        setStatusMsg(`ลบ ${item.name} เรียบร้อยแล้ว!`);
+        setTimeout(() => setStatusMsg(''), 4000);
+      } else {
+        alert(data.error || 'ไม่สามารถลบได้');
+      }
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการลบ');
     }
   };
 
@@ -295,22 +354,43 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
             {fileList.map((item, idx) => {
               const isSelected = activeFilePath === item.path;
               return (
-                <button
+                <div
                   key={idx}
                   onClick={() => openFile(item)}
-                  className={`w-full text-left px-2.5 py-1.5 text-xs rounded flex items-center space-x-2 transition ${
+                  className={`w-full group text-left px-2.5 py-1.5 text-xs rounded flex items-center justify-between transition cursor-pointer ${
                     isSelected
                       ? 'bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/30'
                       : 'text-gray-300 hover:bg-gray-800'
                   }`}
                 >
-                  {item.isDirectory ? (
-                    <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                  ) : (
-                    <FileCode className="w-4 h-4 text-blue-400 shrink-0" />
-                  )}
-                  <span className="truncate">{item.name}</span>
-                </button>
+                  <div className="flex items-center space-x-2 min-w-0 pr-1">
+                    {item.isDirectory ? (
+                      <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+                    ) : (
+                      <FileCode className="w-4 h-4 text-blue-400 shrink-0" />
+                    )}
+                    <span className="truncate">{item.name}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => handleRenameFile(item, e)}
+                      className="p-1 hover:bg-gray-700 text-gray-400 hover:text-amber-300 rounded"
+                      title="เปลี่ยนชื่อไฟล์"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteFile(item, e)}
+                      className="p-1 hover:bg-gray-700 text-gray-400 hover:text-rose-400 rounded"
+                      title="ลบไฟล์"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
               );
             })}
           </div>

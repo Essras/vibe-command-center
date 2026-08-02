@@ -148,6 +148,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
+    if (action === 'rename') {
+      const { oldPath, newName } = body;
+      if (!oldPath || !newName) {
+        return NextResponse.json({ error: 'Missing oldPath or newName' }, { status: 400 });
+      }
+      const oldFullPath = getSafePath(oldPath);
+      const newFullPath = path.join(path.dirname(oldFullPath), newName.trim().replace(/[^a-zA-Z0-9._-]/g, '_'));
+      await fs.rename(oldFullPath, newFullPath);
+      return NextResponse.json({ success: true, message: 'Renamed successfully' });
+    }
+
     if (action === 'delete') {
       if (fsSync.existsSync(targetPath)) {
         const stat = await fs.stat(targetPath);
