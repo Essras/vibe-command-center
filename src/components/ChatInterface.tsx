@@ -40,6 +40,7 @@ interface ChatInterfaceProps {
   onSendMessage: (text: string, attachments: any[]) => void;
   onClearHistory: () => void;
   isLoading: boolean;
+  openStatusModalSignal?: number;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -51,6 +52,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onSendMessage,
   onClearHistory,
   isLoading,
+  openStatusModalSignal,
 }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<{ name: string; type: string; content: string }[]>([]);
@@ -73,6 +75,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     activeProcessesCount: 0,
   });
   const [showStatusModal, setShowStatusModal] = useState(false);
+
+  useEffect(() => {
+    if (openStatusModalSignal && openStatusModalSignal > 0) {
+      setShowStatusModal(true);
+    }
+  }, [openStatusModalSignal]);
 
   useEffect(() => {
     const checkVpsStatus = async () => {

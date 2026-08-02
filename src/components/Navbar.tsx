@@ -9,6 +9,7 @@ import {
   Plus,
   Zap,
   ChevronDown,
+  Cpu,
 } from 'lucide-react';
 import { UserDropdownMenu } from './UserDropdownMenu';
 
@@ -30,6 +31,7 @@ interface NavbarProps {
   keys?: ProviderKeys;
   currentUser?: { username: string; role: 'admin' | 'member'; creditsBalance: number };
   onOpenMemberUsage?: () => void;
+  onOpenVpsStatus?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -50,8 +52,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   keys,
   currentUser,
   onOpenMemberUsage,
+  onOpenVpsStatus,
 }) => {
   const activeModel = favoriteModels.find((m) => m.id === activeModelId);
+
+  const [vpsStatus, setVpsStatus] = React.useState<{ isRunning: boolean; activeProcessesCount: number }>({
+    isRunning: false,
+    activeProcessesCount: 0,
+  });
+
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/system/status');
+        const data = await res.json();
+        if (data.success) {
+          setVpsStatus({
+            isRunning: data.isRunning,
+            activeProcessesCount: data.activeProcessesCount || 0,
+          });
+        }
+      } catch (e) {}
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isKeyConfigured = (provider: string): boolean => {
     if (!keys) return false;
@@ -241,6 +267,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Editor</span>
             </button>
           </div>
+
+          {/* VPS Status Badge in Main Header */}
+          <button
+            type="button"
+            onClick={onOpenVpsStatus}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition shadow border cursor-pointer ${
+              vpsStatus.isRunning
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-amber-500/10'
+                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+            }`}
+            title="คลิกเพื่อดูสถานะโปรเซสงานบน VPS"
+          >
+            <Cpu className={`w-3.5 h-3.5 ${vpsStatus.isRunning ? 'text-amber-400 animate-spin' : 'text-emerald-400'}`} />
+            <span className="inline-block">
+              {vpsStatus.isRunning
+                ? `VPS: รันงาน (${vpsStatus.activeProcessesCount})`
+                : 'VPS: พร้อม'}
+            </span>
+          </button>
 
           {/* Grouped User Profile & Settings Menu */}
           <UserDropdownMenu

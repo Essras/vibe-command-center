@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isMemberUsageOpen, setIsMemberUsageOpen] = useState(false);
+  const [vpsStatusModalSignal, setVpsStatusModalSignal] = useState(0);
 
   // Chat State
   const [messages, setMessages] = useState<ChatMessageUI[]>([]);
@@ -292,6 +293,10 @@ export default function DashboardPage() {
         keys={data?.keys}
         currentUser={data?.currentUser}
         onOpenMemberUsage={() => setIsMemberUsageOpen(true)}
+        onOpenVpsStatus={() => {
+          setActiveTab('chat');
+          setVpsStatusModalSignal(Date.now());
+        }}
       />
 
       <main className="flex-1 flex flex-col pb-16 md:pb-0">
@@ -305,6 +310,7 @@ export default function DashboardPage() {
             onSendMessage={handleSendMessage}
             onClearHistory={handleClearHistory}
             isLoading={isLoading}
+            openStatusModalSignal={vpsStatusModalSignal}
           />
         ) : (
           <CodeEditor activeProject={activeProject} />
