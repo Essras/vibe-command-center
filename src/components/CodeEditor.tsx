@@ -165,7 +165,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
           <div className="p-3 border-b border-gray-800 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Folder className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-bold text-gray-200 truncate">VPS Workspace</span>
+              <span className="text-xs font-bold text-gray-200 truncate">
+                {activeProject ? activeProject.name : 'VPS Workspace'}
+              </span>
             </div>
             <div className="flex items-center space-x-1">
               <button
@@ -190,12 +192,12 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-            {currentDir !== '.' && (
+            {currentDir !== '.' && currentDir !== activeProject?.vpsFolder && (
               <button
                 onClick={() => {
-                  const parts = currentDir.split('/');
+                  const parts = currentDir.replace(/\\/g, '/').split('/');
                   parts.pop();
-                  fetchFiles(parts.join('/') || '.');
+                  fetchFiles(parts.join('/') || activeProject?.vpsFolder || '.');
                 }}
                 className="w-full text-left px-2 py-1 text-xs text-indigo-400 hover:bg-gray-800 rounded flex items-center gap-1.5"
               >
