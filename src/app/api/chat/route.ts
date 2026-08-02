@@ -25,48 +25,54 @@ export async function POST(req: Request) {
     const systemPrompt = project ? project.systemPrompt : undefined;
     const selectedModel = modelId || db.activeModelId;
 
-    // Pre-process Google Drive links in user attachments or message content
-    const processedMessages = JSON.parse(JSON.stringify(messages));
-    const lastUserMsg = processedMessages[processedMessages.length - 1];
-
-    if (lastUserMsg && lastUserMsg.role === 'user') {
-      let gdriveId: string | null = null;
-
-      if (lastUserMsg.attachments && Array.isArray(lastUserMsg.attachments)) {
-        for (const att of lastUserMsg.attachments) {
-          if (att.type === 'application/gdrive' || (att.content && att.content.includes('drive.google.com'))) {
-            gdriveId = extractGDriveId(att.content || att.name);
-            if (gdriveId) break;
-          }
-        }
-      }
-
-      if (!gdriveId && lastUserMsg.content) {
-        gdriveId = extractGDriveId(lastUserMsg.content);
-      }
-
-      if (gdriveId) {
-        const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
-        const targetInputFolder = `${targetWorkspace}/input`;
-
-        const downloadRes = await downloadGDriveFileToWorkspace(
-          gdriveId,
-          targetInputFolder,
-          currentUser.user?.googleAccessToken
-        );
-
-        if (downloadRes.success) {
-          lastUserMsg.content += `\n\n[📢 ระบบเซิร์ฟเวอร์แจ้งเตือน AI: ได้ทำการดาวน์โหลดไฟล์สื่อจาก Google Drive (ID: ${gdriveId}) เข้าสู่โฟลเดอร์ "${downloadRes.filePath}" เรียบร้อยแล้ว! ไฟล์พร้อมใช้งานสำหรับกระบวนการตัดต่อ, FFmpeg, Python และ Easy AI Editor แล้ว จงเริ่มประมวลผลต่อได้ทันที]`;
-        }
-      }
-    }
-
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
         let fullAssistantMessage = '';
         let finalModelUsed = selectedModel;
+
+        // Pre-process Google Drive links in user attachments or message content
+        const processedMessages = JSON.parse(JSON.stringify(messages));
+        const lastUserMsg = processedMessages[processedMessages.length - 1];
+
+        if (lastUserMsg && lastUserMsg.role === 'user') {
+          let gdriveId: string | null = null;
+
+          if (lastUserMsg.attachments && Array.isArray(lastUserMsg.attachments)) {
+            for (const att of lastUserMsg.attachments) {
+              if (att.type === 'application/gdrive' || (att.content && att.content.includes('drive.google.com'))) {
+                gdriveId = extractGDriveId(att.content || att.name);
+                if (gdriveId) break;
+              }
+            }
+          }
+
+          if (!gdriveId && lastUserMsg.content) {
+            gdriveId = extractGDriveId(lastUserMsg.content);
+          }
+
+          if (gdriveId) {
+            const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
+            const targetInputFolder = `${targetWorkspace}/input`;
+
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ text: `⚡ 📥 กำลังเชื่อมต่อและดาวน์โหลดไฟล์จาก Google Drive (ID: ${gdriveId}) เข้าสู่โฟลเดอร์ input/ ...\n\n` })}\n\n`
+              )
+            );
+
+            const downloadRes = await downloadGDriveFileToWorkspace(
+              gdriveId,
+              targetInputFolder,
+              currentUser.user?.googleAccessToken
+            );
+
+            if (downloadRes.success) {
+              lastUserMsg.content += `\n\n[📢 ระบบเซิร์ฟเวอร์แจ้งเตือน AI: ได้ทำการดาวน์โหลดไฟล์สื่อจาก Google Drive (ID: ${gdriveId}) เข้าสู่โฟลเดอร์ "${downloadRes.filePath}" เรียบร้อยแล้ว! ไฟล์พร้อมใช้งานสำหรับกระบวนการตัดต่อ, FFmpeg, Python และ Easy AI Editor แล้ว จงเริ่มประมวลผลต่อได้ทันที]`;
+            }
+          }
+        }
 
         await executeAIRequestWithFallback(
           {
