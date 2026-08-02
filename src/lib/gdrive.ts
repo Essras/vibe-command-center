@@ -64,19 +64,37 @@ export async function downloadGDriveFileToWorkspace(
       }
     }
 
-    // 2. Public Download Fallback
+    // 2. Direct Google Drive CDN Public Download Fallback
     if (!fileBuffer) {
-      const publicUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-      const pubRes = await fetch(publicUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
+      const publicUrls = [
+        `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`,
+        `https://drive.google.com/uc?export=download&confirm=t&id=${fileId}`,
+        `https://drive.google.com/uc?export=download&id=${fileId}`,
+      ];
 
-      if (pubRes.ok) {
-        const arrayBuf = await pubRes.arrayBuffer();
-        fileBuffer = Buffer.from(arrayBuf);
+      for (const url of publicUrls) {
+        try {
+          const pubRes = await fetch(url, {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+          });
+
+          if (pubRes.ok) {
+            const contentType = pubRes.headers.get('content-type') || '';
+            const arrayBuf = await pubRes.arrayBuffer();
+            const buf = Buffer.from(arrayBuf);
+            const head = buf.toString('utf-8', 0, 100).toLowerCase();
+
+            if (!contentType.includes('text/html') && !head.includes('<!doctype') && !head.includes('<html')) {
+              fileBuffer = buf;
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn(`Public GDrive fetch failed for ${url}:`, e);
+        }
       }
     }
 
@@ -86,19 +104,15 @@ export async function downloadGDriveFileToWorkspace(
       return {
         success: true,
         fileId,
-        filePath: `workspace/video-editor/input/${fileName}`,
+        filePath: `${targetFolder}/${fileName}`,
         fileName,
       };
     }
 
-    const stubPath = path.join(destDir, fileName);
-    await fs.writeFile(stubPath, `Google Drive Source File ID: ${fileId}\nURL: https://drive.google.com/file/d/${fileId}`);
-
     return {
-      success: true,
+      success: false,
       fileId,
-      filePath: `workspace/video-editor/input/${fileName}`,
-      fileName,
+      error: 'ไฟล์ Google Drive นี้ตั้งสิทธิ์เป็นส่วนตัว (Private) หรือต้องการยืนยันตัวตนด้วย Google OAuth กรุณาผูกบัญชี Google Drive ในหน้า Member Portal หรือเปลี่ยนสิทธิ์แชร์ไฟล์เป็น "Anyone with the link can view"',
     };
   } catch (err: any) {
     return {
