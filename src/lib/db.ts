@@ -126,6 +126,14 @@ const DEFAULT_DATA: VibeData = {
       vpsFolder: './workspace',
       createdAt: new Date().toISOString(),
     },
+    {
+      id: 'proj-video-editor',
+      name: 'Video editor',
+      description: 'Easy AI Editor Workflow Pack Workspace for Thai Video Production & Editing',
+      systemPrompt: 'คุณคือ Easy AI Editor Specialist ประจำระบบ Video Editor ที่ดูแลการตัดต่อวิดีโอภาษาไทยแบบมืออาชีพ (Short-form, Reels, TikTok, Ads, Lessons) โดยยึดปฏิบัติตามกฎของ easy-ai-editor-skill (SKILL.md) 100%:\n1. ตรวจสอบ Hardware Acceleration, FFmpeg, Thai Fonts (Kanit, Noto Sans Thai) และเครื่องมือตัดต่อในระบบก่อนทำงาน\n2. จัดการคำบรรยายและซับไตเติลภาษาไทยให้อ่านง่าย พอดีกับกรอบหน้า (Speech-safe cuts & Face-safe framing)\n3. รักษาสี SDR Rec.709 ป้องกันอาการสีซีด (Color Safety / HDR-SDR conversion)\n4. วางโครงสร้างโฟลเดอร์ input, output, assets, music, broll, transcript, temp, reports อย่างเป็นระเบียบ',
+      vpsFolder: './workspace/video-editor',
+      createdAt: new Date().toISOString(),
+    },
   ],
   chatHistory: {},
   users: [

@@ -1,0 +1,118 @@
+{
+  "project": {
+    "name": "easy-ai-editor-project",
+    "version": 1,
+    "created_from": "Easy AI Editor",
+    "target": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "platform": "vertical social"
+    }
+  },
+  "sources": {
+    "aroll": "INPUT_MAIN_VIDEO_PATH",
+    "music": null,
+    "broll": [],
+    "sfx_folder": null,
+    "transcript_authority": {
+      "content_source": "elevenlabs_or_manual_or_whisperx_corrected",
+      "timing_source": "whisperx_or_forced_alignment",
+      "transcript_file": null,
+      "word_timing_file": null
+    }
+  },
+  "cut_list": [
+    {
+      "id": "cut_001",
+      "source_range": ["00:00.000", "00:10.000"],
+      "output_range": ["00:00.000", "00:10.000"],
+      "reason": "keep core speech",
+      "audio_rule": "preserve word starts and word endings"
+    }
+  ],
+  "inserts": [
+    {
+      "id": "insert_01",
+      "asset": "BROLL_OR_IMAGE_PATH",
+      "source_range": null,
+      "output_range": ["00:00.000", "00:03.000"],
+      "layout": "full_screen",
+      "motion": "none",
+      "face_rule": "not_applicable",
+      "safe_checks": ["start_frame", "middle_frame", "end_frame"]
+    }
+  ],
+  "text_pipeline": {
+    "renderer": "pango_or_browser_svg_overlay",
+    "locked_after_first_render": true,
+    "style_lock_note": "Kanit/stroke/box/size are visible style locks; do not switch renderer silently."
+  },
+  "headline": {
+    "enabled": true,
+    "output_range": ["00:00.000", "00:03.000"],
+    "text": "HEADLINE_TEXT",
+    "font": "Kanit ExtraBold",
+    "style": "thai_short_form_hook",
+    "placement_rule": "largest face-safe blank area from actual opening frame",
+    "locked": false
+  },
+  "subtitles": {
+    "enabled": true,
+    "source": "corrected_transcript_plus_word_timing",
+    "font": "Kanit Regular",
+    "size_px": 56,
+    "stroke": "thin",
+    "box": false,
+    "baseline_y": 1450,
+    "baseline_rule": "one baseline for whole clip unless it blocks face, subject, UI, or user orders otherwise",
+    "chunking_rule": "Thai natural phrase chunks mapped to first/last aligned word timing",
+    "gap_audit_required": true,
+    "locked": false
+  },
+  "keywords": [
+    {
+      "text": "KEYWORD",
+      "output_range": ["00:05.000", "00:06.200"],
+      "style": "large_pop",
+      "placement_rule": "face-safe open area"
+    }
+  ],
+  "audio": {
+    "music_bed": {
+      "file": null,
+      "level_db": -22,
+      "fade_in_sec": 0.5,
+      "fade_out_sec": 1.0
+    },
+    "sfx": [
+      {
+        "file": "SFX_FILE_PATH",
+        "at": "00:01.000",
+        "reason": "headline hit",
+        "level_db": -14
+      }
+    ]
+  },
+  "effects": [
+    {
+      "id": "punch_001",
+      "type": "punch_in",
+      "output_range": ["00:12.000", "00:15.000"],
+      "hold_sec_min": 3,
+      "face_rule": "eyes_nose_mouth_chin_visible"
+    }
+  ],
+  "locks": {
+    "accepted_items": [],
+    "do_not_touch_next_round": []
+  },
+  "round_log": [
+    {
+      "round": 1,
+      "changed_fields": ["initial_spec"],
+      "reason": "first render",
+      "verification": ["contact_sheet", "subtitle_gap_audit", "face_safe_frames"]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Easy AI Editor"
+  short_description: "Thai AI video editing workflow"
+  default_prompt: "Use $easy-ai-editor to inspect the audio, visuals, files, and new-machine hardware acceleration when relevant; plan the edit with face-safe headline/subtitle zones per scene; then render a usable baseline cut with Thai-safe subtitles, headline, music, and motivated effects."
