@@ -220,34 +220,65 @@ export async function executeAIRequestWithFallback(
     });
   }
 
-  let success = false;
   let lastError = '';
+  let isRateLimitCascade = false;
 
   for (let i = 0; i < modelQueue.length; i++) {
     const currentModel = modelQueue[i];
-    if (i > 0) {
+
+    if (i > 0 && isRateLimitCascade) {
       onChunk({
         fallbackTriggered: true,
         fallbackNotice: `\n\n> 🔄 **Notice:** ติด Rate Limit (429) บนโมเดลเดิม สลับไปใช้โมเดลโปรด **${currentModel.name}** (${currentModel.provider.toUpperCase()}) ให้อัตโนมัติ...\n\n`,
         modelUsed: currentModel.name,
       });
+      isRateLimitCascade = false;
     }
 
     try {
       const res = await callAIProvider(currentModel, messages, systemPrompt, keys);
 
-      if (res.status === 429 && autoFallback429 && i < modelQueue.length - 1) {
-        console.warn(`Model ${currentModel.id} returned 429 Rate Limit. Attempting auto-fallback...`);
+      // Check if HTTP status is 429 Rate Limit
+      if (res.status === 429) {
+        console.warn(`Model ${currentModel.id} returned 429 Rate Limit.`);
         lastError = `429 Rate limit on ${currentModel.name}`;
-        continue;
-      }
-
-      if (!res.ok) {
-        const errText = await res.text();
-        if (res.status === 429 && autoFallback429 && i < modelQueue.length - 1) {
+        isRateLimitCascade = true;
+        if (autoFallback429 && i < modelQueue.length - 1) {
           continue;
         }
-        throw new Error(`HTTP ${res.status}: ${errText}`);
+      }
+
+      // Handle Non-200 Errors
+      if (!res.ok) {
+        const errText = await res.text();
+        let parsedErr = errText;
+        let is429Err = res.status === 429;
+
+        try {
+          const jsonErr = JSON.parse(errText);
+          parsedErr = jsonErr.error?.message || jsonErr.message || errText;
+          if (
+            jsonErr.error?.code === 429 ||
+            jsonErr.error?.status === 'RESOURCE_EXHAUSTED' ||
+            parsedErr.toLowerCase().includes('rate limit') ||
+            parsedErr.toLowerCase().includes('quota')
+          ) {
+            is429Err = true;
+          }
+        } catch (e) {}
+
+        if (is429Err && autoFallback429 && i < modelQueue.length - 1) {
+          isRateLimitCascade = true;
+          lastError = parsedErr;
+          continue;
+        }
+
+        // If it is NOT a 429 Rate Limit (e.g. 401 Invalid Key, 400 Bad Request, 404 Not Found), stop execution immediately!
+        onChunk({
+          error: `[${currentModel.provider.toUpperCase()}] ${currentModel.name}: ${parsedErr}`,
+          done: true,
+        });
+        return;
       }
 
       const reader = res.body?.getReader();
@@ -255,6 +286,7 @@ export async function executeAIRequestWithFallback(
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamHasPayload = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -272,20 +304,36 @@ export async function executeAIRequestWithFallback(
             if (trimmed.startsWith('data:')) {
               try {
                 const data = JSON.parse(trimmed.slice(5).trim());
+                if (data.error) {
+                  throw new Error(data.error.message || 'Gemini API Error');
+                }
                 const chunkText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (chunkText) {
+                  streamHasPayload = true;
                   onChunk({ text: chunkText, modelUsed: currentModel.name });
                 }
-              } catch (e) {}
+              } catch (e: any) {
+                if (e.message && !e.message.includes('JSON')) {
+                  throw e;
+                }
+              }
             }
           } else if (currentModel.provider === 'claude') {
             if (trimmed.startsWith('data:')) {
               try {
                 const data = JSON.parse(trimmed.slice(5).trim());
+                if (data.error) {
+                  throw new Error(data.error.message || 'Claude API Error');
+                }
                 if (data.type === 'content_block_delta' && data.delta?.text) {
+                  streamHasPayload = true;
                   onChunk({ text: data.delta.text, modelUsed: currentModel.name });
                 }
-              } catch (e) {}
+              } catch (e: any) {
+                if (e.message && !e.message.includes('JSON')) {
+                  throw e;
+                }
+              }
             }
           } else {
             // OpenAI / OpenRouter / OKMD standard SSE
@@ -294,26 +342,50 @@ export async function executeAIRequestWithFallback(
               if (dataStr === '[DONE]') continue;
               try {
                 const data = JSON.parse(dataStr);
+                if (data.error) {
+                  const errMsg = data.error.message || JSON.stringify(data.error);
+                  if (errMsg.toLowerCase().includes('rate limit') || data.error.code === 429) {
+                    isRateLimitCascade = true;
+                    throw new Error(`429: ${errMsg}`);
+                  }
+                  throw new Error(errMsg);
+                }
                 const chunkText = data.choices?.[0]?.delta?.content;
                 if (chunkText) {
+                  streamHasPayload = true;
                   onChunk({ text: chunkText, modelUsed: currentModel.name });
                 }
-              } catch (e) {}
+              } catch (e: any) {
+                if (e.message && !e.message.includes('JSON')) {
+                  throw e;
+                }
+              }
             }
           }
         }
       }
 
-      success = true;
-      break;
+      // Successful completion
+      onChunk({ done: true });
+      return;
     } catch (err: any) {
       lastError = err.message || String(err);
       console.error(`Error with model ${currentModel.id}:`, err);
-      if (i === modelQueue.length - 1) {
-        onChunk({ error: `เกิดข้อผิดพลาดในการเรียกใช้ AI (${currentModel.provider.toUpperCase()}): ${lastError}` });
+
+      const is429 = lastError.includes('429') || lastError.toLowerCase().includes('rate limit');
+      if (is429 && autoFallback429 && i < modelQueue.length - 1) {
+        isRateLimitCascade = true;
+        continue;
       }
+
+      // Non-429 error or end of queue: stop and show exact error message
+      onChunk({
+        error: `[${currentModel.provider.toUpperCase()}] ${currentModel.name}: ${lastError}`,
+        done: true,
+      });
+      return;
     }
   }
 
-  onChunk({ done: true });
+  onChunk({ error: `โมเดลโปรดทั้งหมดติด Rate Limit (429): ${lastError}`, done: true });
 }
