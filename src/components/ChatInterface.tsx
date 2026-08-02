@@ -233,7 +233,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 )}
 
                 <div
-                  className={`rounded-2xl p-4 text-xs leading-relaxed space-y-2 max-w-[85%] sm:max-w-[90%] ${
+                  className={`rounded-2xl p-3.5 sm:p-4 text-xs leading-relaxed space-y-2 max-w-[95%] sm:max-w-[88%] min-w-0 overflow-hidden ${
                     isUser
                       ? 'bg-indigo-600 text-white rounded-tr-none shadow-lg shadow-indigo-600/20'
                       : 'bg-gray-900 border border-gray-800 text-gray-100 rounded-tl-none shadow-md'
@@ -272,17 +272,38 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   {isUser ? (
                     <div className="whitespace-pre-wrap">{msg.content}</div>
                   ) : (
-                    <div className="prose prose-invert prose-xs max-w-none">
+                    <div className="prose prose-invert prose-xs max-w-none min-w-0 overflow-hidden">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
+                          table({ children }: any) {
+                            return (
+                              <div className="overflow-x-auto max-w-full my-3 rounded-xl border border-gray-800 bg-gray-950/80 shadow-md">
+                                <table className="min-w-full divide-y divide-gray-800 text-xs text-left">
+                                  {children}
+                                </table>
+                              </div>
+                            );
+                          },
+                          thead({ children }: any) {
+                            return <thead className="bg-gray-900 text-indigo-300 font-bold">{children}</thead>;
+                          },
+                          th({ children }: any) {
+                            return <th className="px-3 py-2 border-b border-gray-800 whitespace-nowrap">{children}</th>;
+                          },
+                          td({ children }: any) {
+                            return <td className="px-3 py-2 border-b border-gray-850 text-gray-200">{children}</td>;
+                          },
+                          pre({ children }: any) {
+                            return <div className="overflow-x-auto max-w-full my-2">{children}</div>;
+                          },
                           code({ node, inline, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || '');
                             const codeString = String(children).replace(/\n$/, '');
                             const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
 
                             return !inline && match ? (
-                              <div className="relative my-3 rounded-lg overflow-hidden border border-gray-800">
+                              <div className="relative my-3 rounded-lg overflow-hidden border border-gray-800 max-w-full overflow-x-auto">
                                 <div className="bg-gray-950 px-3 py-1.5 flex items-center justify-between text-[10px] text-gray-400 border-b border-gray-800">
                                   <span>{match[1].toUpperCase()}</span>
                                   <button

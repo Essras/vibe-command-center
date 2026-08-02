@@ -33,6 +33,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
   const [fileContent, setFileContent] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
+  const [mobileTab, setMobileTab] = useState<'files' | 'editor'>('files');
 
   const fetchFiles = async (dirPath: string = '.') => {
     try {
@@ -66,6 +67,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
           setActiveFilePath(item.path);
           setFileContent(data.content);
           setStatusMsg('');
+          setMobileTab('editor'); // Auto switch to editor on mobile when file selected
         }
       } catch (err) {
         console.error('Error reading file:', err);
@@ -126,128 +128,170 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
   };
 
   return (
-    <div className="flex-1 flex h-[calc(100vh-4rem)] bg-gray-950 text-gray-100 overflow-hidden">
-      {/* Sidebar File Explorer */}
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0">
-        <div className="p-3 border-b border-gray-800 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Folder className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs font-bold text-gray-200 truncate">VPS Workspace</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={handleCreateNewFile}
-              className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded"
-              title="สร้างไฟล์ใหม่"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => fetchFiles(currentDir)}
-              className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded"
-              title="รีเฟรชโฟลเดอร์"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-850 text-[11px] text-gray-400 font-mono truncate">
-          📁 {currentDir}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {currentDir !== '.' && (
-            <button
-              onClick={() => {
-                const parts = currentDir.split('/');
-                parts.pop();
-                fetchFiles(parts.join('/') || '.');
-              }}
-              className="w-full text-left px-2 py-1 text-xs text-indigo-400 hover:bg-gray-800 rounded flex items-center gap-1.5"
-            >
-              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-              <span>.. (ย้อนกลับ)</span>
-            </button>
-          )}
-
-          {fileList.map((item, idx) => {
-            const isSelected = activeFilePath === item.path;
-            return (
-              <button
-                key={idx}
-                onClick={() => openFile(item)}
-                className={`w-full text-left px-2.5 py-1.5 text-xs rounded flex items-center space-x-2 transition ${
-                  isSelected
-                    ? 'bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/30'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`}
-              >
-                {item.isDirectory ? (
-                  <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                ) : (
-                  <FileCode className="w-4 h-4 text-blue-400 shrink-0" />
-                )}
-                <span className="truncate">{item.name}</span>
-              </button>
-            );
-          })}
-        </div>
+    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] bg-gray-950 text-gray-100 overflow-hidden">
+      {/* Mobile Sub-Header View Toggle (Visible only on mobile < md) */}
+      <div className="md:hidden bg-gray-900 border-b border-gray-800 p-1 flex justify-center space-x-1 shrink-0">
+        <button
+          onClick={() => setMobileTab('files')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            mobileTab === 'files'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Folder className="w-3.5 h-3.5" />
+          <span>📁 รายการไฟล์</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('editor')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            mobileTab === 'editor'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <FileCode className="w-3.5 h-3.5" />
+          <span>📝 ตัวแก้ไขโค้ด</span>
+        </button>
       </div>
 
-      {/* Editor Container */}
-      <div className="flex-1 flex flex-col bg-gray-950">
-        {/* Editor Top Bar */}
-        <div className="h-10 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileCode className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs font-mono text-gray-200">
-              {activeFilePath ? activeFilePath : 'ยังไม่ได้เลือกไฟล์'}
-            </span>
-          </div>
-
-          {activeFilePath && (
-            <div className="flex items-center space-x-3">
-              {statusMsg && (
-                <span className="text-xs text-emerald-400 font-medium animate-fade-in">
-                  ✓ {statusMsg}
-                </span>
-              )}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar File Explorer */}
+        <div
+          className={`bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 ${
+            mobileTab === 'files' ? 'w-full flex' : 'hidden md:flex md:w-64'
+          }`}
+        >
+          <div className="p-3 border-b border-gray-800 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Folder className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-gray-200 truncate">VPS Workspace</span>
+            </div>
+            <div className="flex items-center space-x-1">
               <button
-                onClick={handleSaveFile}
-                disabled={isSaving}
-                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 shadow transition disabled:opacity-50"
+                onClick={handleCreateNewFile}
+                className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded"
+                title="สร้างไฟล์ใหม่"
               >
-                <Save className="w-3.5 h-3.5" />
-                <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึกไฟล์บน VPS'}</span>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => fetchFiles(currentDir)}
+                className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded"
+                title="รีเฟรชโฟลเดอร์"
+              >
+                <RefreshCw className="w-4 h-4" />
               </button>
             </div>
-          )}
+          </div>
+
+          <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-850 text-[11px] text-gray-400 font-mono truncate">
+            📁 {currentDir}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {currentDir !== '.' && (
+              <button
+                onClick={() => {
+                  const parts = currentDir.split('/');
+                  parts.pop();
+                  fetchFiles(parts.join('/') || '.');
+                }}
+                className="w-full text-left px-2 py-1 text-xs text-indigo-400 hover:bg-gray-800 rounded flex items-center gap-1.5"
+              >
+                <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+                <span>.. (ย้อนกลับ)</span>
+              </button>
+            )}
+
+            {fileList.map((item, idx) => {
+              const isSelected = activeFilePath === item.path;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => openFile(item)}
+                  className={`w-full text-left px-2.5 py-1.5 text-xs rounded flex items-center space-x-2 transition ${
+                    isSelected
+                      ? 'bg-indigo-600/30 text-indigo-300 font-semibold border border-indigo-500/30'
+                      : 'text-gray-300 hover:bg-gray-800'
+                  }`}
+                >
+                  {item.isDirectory ? (
+                    <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+                  ) : (
+                    <FileCode className="w-4 h-4 text-blue-400 shrink-0" />
+                  )}
+                  <span className="truncate">{item.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Monaco Editor area */}
-        <div className="flex-1">
-          {activeFilePath ? (
-            <Editor
-              height="100%"
-              theme="vs-dark"
-              language={getLanguageFromPath(activeFilePath)}
-              value={fileContent}
-              onChange={(value) => setFileContent(value || '')}
-              options={{
-                fontSize: 13,
-                minimap: { enabled: true },
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                tabSize: 2,
-              }}
-            />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500">
-              <Code2 className="w-12 h-12 mb-2 text-gray-700" />
-              <p className="text-sm">เลือกไฟล์จากแถบด้านซ้ายเพื่อเปิดดูและแก้ไขโค้ดบน VPS</p>
+        {/* Editor Container */}
+        <div
+          className={`flex-1 flex-col bg-gray-950 min-w-0 ${
+            mobileTab === 'editor' ? 'flex w-full' : 'hidden md:flex'
+          }`}
+        >
+          {/* Editor Top Bar */}
+          <div className="h-10 bg-gray-900 border-b border-gray-800 px-3 sm:px-4 flex items-center justify-between min-w-0">
+            <div className="flex items-center space-x-2 min-w-0">
+              <FileCode className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span className="text-xs font-mono text-gray-200 truncate">
+                {activeFilePath ? activeFilePath : 'ยังไม่ได้เลือกไฟล์'}
+              </span>
             </div>
-          )}
+
+            {activeFilePath && (
+              <div className="flex items-center space-x-2 shrink-0">
+                {statusMsg && (
+                  <span className="text-xs text-emerald-400 font-medium animate-fade-in hidden sm:inline">
+                    ✓ {statusMsg}
+                  </span>
+                )}
+                <button
+                  onClick={handleSaveFile}
+                  disabled={isSaving}
+                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg flex items-center gap-1 shadow transition disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึกไฟล์'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Monaco Editor area */}
+          <div className="flex-1 relative min-w-0">
+            {activeFilePath ? (
+              <Editor
+                height="100%"
+                theme="vs-dark"
+                language={getLanguageFromPath(activeFilePath)}
+                value={fileContent}
+                onChange={(value) => setFileContent(value || '')}
+                options={{
+                  fontSize: 13,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 2,
+                }}
+              />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+                <Code2 className="w-12 h-12 mb-2 text-gray-700" />
+                <p className="text-sm">เลือกไฟล์จากแถบด้านซ้ายเพื่อเปิดดูและแก้ไขโค้ดบน VPS</p>
+                <button
+                  onClick={() => setMobileTab('files')}
+                  className="md:hidden mt-3 px-3 py-1.5 bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-500/40"
+                >
+                  📁 ไปยังรายการไฟล์
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

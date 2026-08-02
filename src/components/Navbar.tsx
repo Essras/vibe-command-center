@@ -136,15 +136,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
 
-          <div className="h-4 sm:h-5 w-px bg-gray-800 shrink-0" />
+          <div className="h-4 sm:h-5 w-px bg-gray-800 shrink-0 hidden md:block" />
 
-          {/* Workspace Selector Dropdown */}
-          <div className="flex items-center space-x-1 min-w-0">
+          {/* Workspace Selector Dropdown (Desktop Only) */}
+          <div className="hidden md:flex items-center space-x-1 min-w-0">
             <div className="relative min-w-0">
               <select
                 value={activeProjectId}
                 onChange={(e) => onSelectProject(e.target.value)}
-                className="bg-gray-900 text-gray-200 text-xs font-semibold rounded-lg pl-2.5 pr-7 py-1.5 border border-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none cursor-pointer hover:bg-gray-850 transition max-w-[120px] xs:max-w-[140px] sm:max-w-[190px] md:max-w-[220px] truncate"
+                className="bg-gray-900 text-gray-200 text-xs font-semibold rounded-lg pl-2.5 pr-7 py-1.5 border border-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none cursor-pointer hover:bg-gray-850 transition max-w-[190px] md:max-w-[220px] truncate"
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id} className="bg-gray-900 text-gray-100">
@@ -165,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Center: Model Selector Dropdown (Desktop / Medium Screens >= 768px) */}
+        {/* Center: Model Selector Dropdown (Desktop >= 768px) */}
         <div className="hidden md:flex items-center justify-center px-2 min-w-0 shrink">
           <div className="relative flex items-center bg-gray-900/90 border border-gray-800 rounded-xl px-2.5 py-1.5 hover:border-indigo-500/50 transition">
             <span
@@ -188,8 +188,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right: Tab Switcher & User Dropdown Menu */}
         <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
-          {/* Chat / Editor Tab Switcher */}
-          <div className="bg-gray-900 p-0.5 sm:p-1 rounded-xl flex border border-gray-800">
+          {/* Chat / Editor Tab Switcher (Desktop Only) */}
+          <div className="hidden md:flex bg-gray-900 p-0.5 sm:p-1 rounded-xl border border-gray-800">
             <button
               onClick={() => onTabChange('chat')}
               className={`px-2 sm:px-2.5 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 transition cursor-pointer ${
@@ -200,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="สลับไปหน้า แชท (Chat)"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Chat</span>
+              <span>Chat</span>
             </button>
             <button
               onClick={() => onTabChange('editor')}
@@ -212,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="สลับไปหน้า แก้ไขโค้ด (Editor)"
             >
               <Code className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Editor</span>
+              <span>Editor</span>
             </button>
           </div>
 
@@ -228,24 +228,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
         </div>
       </header>
-
-      {/* Mobile Sub-Header Toolbar: Dedicated Model Selector (Mobile Screens < 768px) */}
-      <div className="md:hidden bg-gray-950/95 border-b border-gray-800/80 px-3 py-1.5 flex items-center justify-between backdrop-blur-md">
-        <div className="flex items-center space-x-1.5 w-full min-w-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse shrink-0" />
-          <span className="text-[10px] font-bold text-gray-400 uppercase shrink-0">โหมด AI:</span>
-          <div className="relative flex-1 min-w-0">
-            <select
-              value={activeModelId}
-              onChange={(e) => onSelectModel(e.target.value)}
-              className="w-full bg-gray-900 text-gray-100 font-bold text-xs rounded-lg pl-2 pr-6 py-1 border border-gray-800 focus:outline-none cursor-pointer appearance-none truncate"
-            >
-              {renderModelSelectOptions()}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-1.5 top-1.5 pointer-events-none shrink-0" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
