@@ -189,10 +189,21 @@ export const MemberUsageModal: React.FC<MemberUsageModalProps> = ({
               </div>
 
               {stats?.user?.googleConnected ? (
-                <span className="px-3.5 py-1.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>เชื่อมต่อแล้ว ({stats?.user?.googleEmail})</span>
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3.5 py-1.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>เชื่อมต่อแล้ว ({stats?.user?.googleEmail})</span>
+                  </span>
+                  <a
+                    href="https://drive.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-blue-950/80 hover:bg-blue-900 text-blue-200 border border-blue-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition"
+                    title="คลิกเพื่อเปิดดูและจัดการไฟล์ใน Google Drive ของคุณ"
+                  >
+                    <span>📂 เปิดดูไฟล์ใน Google Drive</span>
+                  </a>
+                </div>
               ) : (
                 <a
                   href="/api/auth/google"
