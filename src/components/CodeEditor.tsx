@@ -15,6 +15,7 @@ import {
   FileCode,
   Upload,
   Edit2,
+  Copy,
 } from 'lucide-react';
 import { Project } from '@/lib/db';
 
@@ -162,6 +163,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
     } catch (err: any) {
       alert(err.message || 'เกิดข้อผิดพลาดในการลบ');
     }
+  };
+
+  const handleCopyPath = (item: FileItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(item.path);
+    setStatusMsg(`คัดลอก Path "${item.path}" เรียบร้อยแล้ว!`);
+    setTimeout(() => setStatusMsg(''), 4000);
   };
 
   const fetchFiles = async (dirPath: string = '.') => {
@@ -373,6 +381,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
                   </div>
 
                   <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyPath(item, e)}
+                      className="p-1 hover:bg-gray-700 text-gray-400 hover:text-indigo-300 rounded"
+                      title="คัดลอก Path ไฟล์ไปวางในแชท"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => handleRenameFile(item, e)}
