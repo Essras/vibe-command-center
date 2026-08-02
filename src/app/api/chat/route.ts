@@ -1,8 +1,49 @@
 import { NextResponse } from 'next/server';
+import fsSync from 'fs';
+import path from 'path';
 import { getDb, saveDb } from '@/lib/db';
 import { executeAIRequestWithFallback } from '@/lib/ai-engine';
 import { getCurrentUser } from '@/lib/auth';
 import { extractGDriveId, downloadGDriveFileToWorkspace } from '@/lib/gdrive';
+
+function getWorkspaceFileContext(vpsFolder: string = 'workspace/video-editor'): string {
+  try {
+    const appRoot = process.cwd();
+    const cleanFolder = vpsFolder.trim().replace(/^(\.\/|\/)/, '');
+    const targetDir = path.resolve(appRoot, cleanFolder);
+
+    if (!fsSync.existsSync(targetDir)) {
+      return '';
+    }
+
+    const inputDir = path.join(targetDir, 'input');
+    const inputFiles: string[] = [];
+
+    if (fsSync.existsSync(inputDir)) {
+      const entries = fsSync.readdirSync(inputDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() && entry.name !== '.gitkeep') {
+          const stat = fsSync.statSync(path.join(inputDir, entry.name));
+          const sizeMB = (stat.size / (1024 * 1024)).toFixed(1);
+          inputFiles.push(`${entry.name} (ขนาด: ${sizeMB} MB)`);
+        }
+      }
+    }
+
+    if (inputFiles.length > 0) {
+      return `\n\n[📂 สภาพแวดล้อมดิสก์ล่าสุดในเซิร์ฟเวอร์ (Real-time File Tree Status)]:
+- โฟลเดอร์ "${cleanFolder}/input/" มีไฟล์สื่ออยู่จริงพร้อมประมวลผล ${inputFiles.length} ไฟล์ ได้แก่:
+  ${inputFiles.map((f) => `• ${f}`).join('\n  ')}
+
+คำสั่งบังคับสำหรับ AI Agent:
+ไฟล์ทั้งหมดข้างต้นมีอยู่จริงบนดิสก์ระบบแล้ว ห้ามตอบปฏิเสธว่า "ไม่พบไฟล์" หรือ "ให้ลากไฟล์มาวาง" เด็ดขาด! จงนำไฟล์สื่อในโฟลเดอร์ input/ ข้างต้นไปรันคำสั่งตัดต่อวิดีโอ (FFmpeg / Faster-Whisper / Easy AI Editor) ได้ทันที!`;
+    }
+
+    return '';
+  } catch (e) {
+    return '';
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +63,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden: You do not own this project workspace' }, { status: 403 });
     }
 
-    const systemPrompt = project ? project.systemPrompt : undefined;
+    const baseSystemPrompt = project ? project.systemPrompt : '';
+    const workspaceContext = getWorkspaceFileContext(project?.vpsFolder || 'workspace/video-editor');
+    const systemPrompt = `${baseSystemPrompt}${workspaceContext}`;
     const selectedModel = modelId || db.activeModelId;
 
     const encoder = new TextEncoder();
