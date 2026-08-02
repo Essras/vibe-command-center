@@ -310,15 +310,22 @@ export async function executeAIRequestWithFallback(
           }
         } catch (e) {}
 
-        if (is429Err && autoFallback429 && i < modelQueue.length - 1) {
+        const isServiceUnavailable = parsedErr.toLowerCase().includes('service is unavailable');
+
+        if ((is429Err || isServiceUnavailable) && autoFallback429 && i < modelQueue.length - 1) {
           isRateLimitCascade = true;
           lastError = parsedErr;
           continue;
         }
 
-        // If it is NOT a 429 Rate Limit (e.g. 401 Invalid Key, 400 Bad Request, 404 Not Found), stop execution immediately!
+        // If it is NOT a 429 Rate Limit or temporary service outage, stop execution with clear diagnostic
+        let errorMsg = `[${currentModel.provider.toUpperCase()}] ${currentModel.name}: ${parsedErr}`;
+        if (isServiceUnavailable && currentModel.provider === 'okmd') {
+          errorMsg = `[OKMD API (gen.ai.kku.ac.th)] เซิร์ฟเวอร์ OKMD แจ้งเตือน "${parsedErr}" (เซิร์ฟเวอร์ OKMD ปิดปรับปรุงบริการชั่วคราวจากฝั่งผู้ให้บริการ) แนะนำให้สลับใช้ Google Gemini หรือ OpenRouter ชั่วคราว`;
+        }
+
         onChunk({
-          error: `[${currentModel.provider.toUpperCase()}] ${currentModel.name}: ${parsedErr}`,
+          error: errorMsg,
           done: true,
         });
         return;

@@ -92,12 +92,16 @@ export async function POST(req: Request) {
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.data || [];
-        fetchedModels = list.map((m: any) => ({
-          id: String(m.id || m.name),
-          name: `[FREE QUOTA] ${m.owned_by || m.name || `OKMD Model ${m.id}`}`,
-          provider: 'okmd',
-          isFree: true,
-        }));
+        fetchedModels = list.map((m: any) => {
+          const modelId = String(m.id || m.name);
+          const owner = m.owned_by ? ` (${m.owned_by})` : '';
+          return {
+            id: modelId,
+            name: `[FREE QUOTA] ${modelId}${owner}`,
+            provider: 'okmd',
+            isFree: true,
+          };
+        });
       } else {
         const res2 = await fetch(`${baseUrl}/chat/models-list`, {
           method: 'POST',
@@ -106,12 +110,15 @@ export async function POST(req: Request) {
         if (res2.ok) {
           const data2 = await res2.json();
           const list2 = Array.isArray(data2) ? data2 : data2.data || [];
-          fetchedModels = list2.map((m: any) => ({
-            id: String(m.id || m.name),
-            name: `[FREE QUOTA] ${m.name || `OKMD Model ${m.id}`}`,
-            provider: 'okmd',
-            isFree: true,
-          }));
+          fetchedModels = list2.map((m: any) => {
+            const modelId = String(m.id || m.name);
+            return {
+              id: modelId,
+              name: `[FREE QUOTA] ${modelId}`,
+              provider: 'okmd',
+              isFree: true,
+            };
+          });
         } else {
           throw new Error(`OKMD API Error: ${res.statusText}`);
         }
