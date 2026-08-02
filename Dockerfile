@@ -26,8 +26,20 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Install video processing tools
+RUN apk add --no-cache \
+    bash \
+    ffmpeg \
+    python3 \
+    py3-pip \
+    py3-setuptools \
+    && pip3 install --no-cache-dir --break-system-packages \
+    openai-whisper \
+    && rm -rf /root/.cache
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/workspace ./workspace
