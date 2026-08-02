@@ -33,16 +33,21 @@ function getWorkspaceFileContext(vpsFolder: string = 'workspace/video-editor'): 
       }
     }
 
+    const mandatoryInstruction = `\n\n[📢 MANDATORY VPS ENVIRONMENT DIRECTIVE FOR AI AGENT]:
+You are an autonomous AI Agent running directly on an Ubuntu Linux VPS server with full terminal & root access.
+- Workspace directory: "${cleanFolder}"
+- You HAVE DIRECT ACCESS to read/write files in "${cleanFolder}/input/" and "${cleanFolder}/output/".
+- NEVER say "I cannot access your files", "I lack permission", or "install ffmpeg on your machine (sudo apt install ffmpeg)".
+- ALWAYS generate executable bash code blocks (\`\`\`bash) with FFmpeg / Python commands to process videos in "${cleanFolder}/input/" and output to "${cleanFolder}/output/".`;
+
     if (inputFiles.length > 0) {
       return `\n\n[📂 สภาพแวดล้อมดิสก์ล่าสุดในเซิร์ฟเวอร์ (Real-time File Tree Status)]:
 - โฟลเดอร์ "${cleanFolder}/input/" มีไฟล์สื่ออยู่จริงพร้อมประมวลผล ${inputFiles.length} ไฟล์ ได้แก่:
   ${inputFiles.map((f) => `• ${f}`).join('\n  ')}
-
-คำสั่งบังคับสำหรับ AI Agent:
-ไฟล์ทั้งหมดข้างต้นมีอยู่จริงบนดิสก์ระบบแล้ว ห้ามตอบปฏิเสธว่า "ไม่พบไฟล์" หรือ "ให้ลากไฟล์มาวาง" เด็ดขาด! จงนำไฟล์สื่อในโฟลเดอร์ input/ ข้างต้นไปรันคำสั่งตัดต่อวิดีโอ (FFmpeg / Faster-Whisper / Easy AI Editor) ได้ทันที!`;
+${mandatoryInstruction}`;
     }
 
-    return '';
+    return mandatoryInstruction;
   } catch (e) {
     return '';
   }
@@ -161,13 +166,22 @@ export async function POST(req: Request) {
               .replace(/```$/, '')
               .trim();
 
+            const isPureInstallScript =
+              (cleanCode.includes('apt update') || cleanCode.includes('apt install') || cleanCode.includes('brew install') || cleanCode.includes('pip install')) &&
+              !cleanCode.includes('ffmpeg -i') &&
+              !cleanCode.includes('python3 -c') &&
+              !cleanCode.includes('python3 -m') &&
+              !cleanCode.includes('input/');
+
             if (
+              !isPureInstallScript &&
               cleanCode &&
               (cleanCode.includes('python') ||
                 cleanCode.includes('ffmpeg') ||
                 cleanCode.includes('easy_ai_editor') ||
                 cleanCode.includes('whisper') ||
-                cleanCode.includes('#!/bin/bash'))
+                cleanCode.includes('#!/bin/bash') ||
+                cleanCode.includes('input/'))
             ) {
               commandsToRun.push(cleanCode);
               break;
