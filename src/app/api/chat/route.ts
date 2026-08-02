@@ -155,14 +155,14 @@ export async function POST(req: Request) {
         );
 
         // 🚀 AUTOMATIC VPS BACKGROUND EXECUTION PIPELINE
-        // Extract bash/sh code blocks or auto-detect media files in input folder to run on VPS
-        const codeBlockMatches = fullAssistantMessage.match(/```(?:bash|sh|shell)?\s*([\s\S]*?)```/gi);
+        // Extract any code block (bash/sh/python/py) or auto-detect media files in input folder to run on VPS
+        const codeBlockMatches = fullAssistantMessage.match(/```[a-zA-Z0-9_-]*\s*([\s\S]*?)```/gi);
         const commandsToRun: string[] = [];
 
         if (codeBlockMatches && codeBlockMatches.length > 0) {
           for (const block of codeBlockMatches) {
             const cleanCode = block
-              .replace(/^```(?:bash|sh|shell)?\s*/i, '')
+              .replace(/^```[a-zA-Z0-9_-]*\s*/i, '')
               .replace(/```$/, '')
               .trim();
 
