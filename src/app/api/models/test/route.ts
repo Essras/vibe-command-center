@@ -17,21 +17,27 @@ export async function POST(req: Request) {
         success: true,
         latency,
         status: res.status,
-        message: `การเชื่อมต่อสำเร็จ! (Latency: ${latency}ms)`,
+        message: `🟢 การเชื่อมต่อกับ ${model.provider.toUpperCase()} (${model.name}) สำเร็จ! (Latency: ${latency}ms, Status: 200 OK)`,
       });
     } else {
       const errText = await res.text();
+      let parsedMessage = errText;
+      try {
+        const json = JSON.parse(errText);
+        parsedMessage = json.error?.message || json.message || errText;
+      } catch (e) {}
+
       return NextResponse.json({
         success: false,
         latency,
         status: res.status,
-        message: `เกิดข้อผิดพลาด (${res.status}): ${errText.slice(0, 150)}`,
+        message: `🔴 เกิดข้อผิดพลาด (${res.status} ${res.statusText}): ${parsedMessage.slice(0, 200)}`,
       });
     }
   } catch (err: any) {
     return NextResponse.json({
       success: false,
-      message: `ไม่สามารถเชื่อมต่อได้: ${err.message}`,
+      message: `🔴 ไม่สามารถเชื่อมต่อได้: ${err.message}`,
     });
   }
 }
