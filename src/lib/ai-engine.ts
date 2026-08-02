@@ -153,21 +153,9 @@ export function resolveModelCategory(
   favoriteModels: FavoriteModel[],
   keys: ProviderKeys
 ): FavoriteModel {
-  // Sanitize non-existent / outdated model IDs to valid Google AI Studio models
-  let targetId = modelId;
-  if (targetId.includes('gemini-3.5') || targetId.includes('gemini-2.5')) {
-    targetId = 'gemini-2.0-flash';
-  }
-
-  // Check exact match first
-  const exact = favoriteModels.find((m) => m.id === targetId || m.id === modelId);
-  if (exact) {
-    // Ensure exact found model uses valid API ID if it had legacy gemini-3.5 name
-    if (exact.id.includes('gemini-3.5') || exact.id.includes('gemini-2.5')) {
-      return { ...exact, id: 'gemini-2.0-flash' };
-    }
-    return exact;
-  }
+  // 1. Check exact match first (Directly fetched dynamically from AI Provider APIs)
+  const exact = favoriteModels.find((m) => m.id === modelId);
+  if (exact) return exact;
 
   // Filter models that have configured API keys
   const validModels = favoriteModels.filter((m) => {
@@ -181,16 +169,16 @@ export function resolveModelCategory(
 
   const available = validModels.length > 0 ? validModels : favoriteModels;
 
-  if (targetId === 'fast') {
+  if (modelId === 'fast') {
     return available.find((m) => m.id.includes('flash') || m.id.includes('mini') || m.id.includes('haiku') || m.id.includes('gemma')) || available[0];
   }
-  if (targetId === 'balanced') {
+  if (modelId === 'balanced') {
     return available.find((m) => m.id.includes('sonnet') || m.id.includes('gpt-4o') || m.id.includes('pro') || m.id.includes('deepseek')) || available[0];
   }
-  if (targetId === 'reasoning') {
+  if (modelId === 'reasoning') {
     return available.find((m) => m.id.includes('r1') || m.id.includes('o1') || m.id.includes('o3') || m.id.includes('reasoning') || m.id.includes('thinking')) || available[0];
   }
-  if (targetId === 'vision') {
+  if (modelId === 'vision') {
     return available.find((m) => m.id.includes('vision') || m.id.includes('4o') || m.id.includes('gemini')) || available[0];
   }
 
