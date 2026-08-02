@@ -28,7 +28,7 @@ export async function POST(req: Request) {
             const rawId = m.name.replace('models/', '');
             return {
               id: rawId,
-              name: `[FREE TIER 🟢] ${m.displayName || rawId}`,
+              name: `[FREE TIER] ${m.displayName || rawId}`,
               provider: 'gemini',
               isFree: true,
             };
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
           const isFree = m.id.endsWith(':free') || m.pricing?.prompt === '0';
           return {
             id: m.id,
-            name: `${isFree ? '[FREE 🟢]' : '[PAID 💳]'} ${m.name || m.id}`,
+            name: `${isFree ? '[FREE]' : '[PAID 💳]'} ${m.name || m.id}`,
             provider: 'openrouter',
             isFree,
           };
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         const list = Array.isArray(data) ? data : data.data || [];
         fetchedModels = list.map((m: any) => ({
           id: String(m.id || m.name),
-          name: `[FREE QUOTA 🟢] ${m.owned_by || m.name || `OKMD Model ${m.id}`}`,
+          name: `[FREE QUOTA] ${m.owned_by || m.name || `OKMD Model ${m.id}`}`,
           provider: 'okmd',
           isFree: true,
         }));
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
           const list2 = Array.isArray(data2) ? data2 : data2.data || [];
           fetchedModels = list2.map((m: any) => ({
             id: String(m.id || m.name),
-            name: `[FREE QUOTA 🟢] ${m.name || `OKMD Model ${m.id}`}`,
+            name: `[FREE QUOTA] ${m.name || `OKMD Model ${m.id}`}`,
             provider: 'okmd',
             isFree: true,
           }));

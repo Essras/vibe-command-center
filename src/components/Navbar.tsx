@@ -54,11 +54,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activeModel = favoriteModels.find((m) => m.id === activeModelId);
 
   const isKeyConfigured = (provider: string): boolean => {
-    if (!keys) return true;
-    if (provider === 'gemini') return !!keys.geminiApiKey?.trim();
-    if (provider === 'openai') return !!keys.openaiApiKey?.trim();
-    if (provider === 'claude') return !!keys.claudeApiKey?.trim();
-    if (provider === 'openrouter') return !!keys.openrouterApiKey?.trim();
+    if (!keys) return false;
+    if (provider === 'gemini') return !!(keys.geminiApiKey?.trim() || process.env.GEMINI_API_KEY);
+    if (provider === 'openai') return !!(keys.openaiApiKey?.trim() || process.env.OPENAI_API_KEY);
+    if (provider === 'claude') return !!(keys.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY);
+    if (provider === 'openrouter') return !!(keys.openrouterApiKey?.trim() || process.env.OPENROUTER_API_KEY);
     if (provider === 'okmd') return !!keys.okmdApiKey?.trim();
     return false;
   };
