@@ -35,7 +35,42 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [statusMsg, setStatusMsg] = useState<string>('');
   const [mobileTab, setMobileTab] = useState<'files' | 'editor'>('files');
+  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+  const [gdriveUrl, setGdriveUrl] = useState<string>('');
+  const [isImportingGDrive, setIsImportingGDrive] = useState<boolean>(false);
   const editorFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportGDrive = async () => {
+    if (!gdriveUrl.trim()) return;
+    setIsImportingGDrive(true);
+    setStatusMsg('กำลังดึงไฟล์/โฟลเดอร์จาก Google Drive...');
+
+    try {
+      const res = await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'import_gdrive',
+          path: currentDir,
+          url: gdriveUrl.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchFiles(currentDir);
+        setStatusMsg(data.message || 'ดึงไฟล์จาก Google Drive เรียบร้อยแล้ว!');
+        setShowUploadModal(false);
+        setGdriveUrl('');
+        setTimeout(() => setStatusMsg(''), 4000);
+      } else {
+        alert(data.error || 'ไม่สามารถดึงไฟล์จาก Google Drive ได้');
+      }
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการดึงไฟล์');
+    } finally {
+      setIsImportingGDrive(false);
+    }
+  };
 
   const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -214,9 +249,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
               />
               <button
                 type="button"
-                onClick={() => editorFileInputRef.current?.click()}
+                onClick={() => setShowUploadModal(true)}
                 className="p-1.5 hover:bg-emerald-950/80 text-emerald-400 hover:text-emerald-300 rounded border border-emerald-500/30 transition flex items-center gap-1 text-[11px]"
-                title="อัปโหลดไฟล์สื่อจากคอมพิวเตอร์เข้าสู่โฟลเดอร์นี้"
+                title="นำเข้าไฟล์สื่อจากคอมพิวเตอร์ หรือ Google Drive"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span className="font-semibold hidden sm:inline">อัปโหลด</span>
@@ -347,6 +382,75 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
           </div>
         </div>
       </div>
+
+      {/* Upload Modal (PC Upload vs Google Drive Import) */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <h3 className="text-sm font-bold text-gray-100 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-emerald-400" />
+                <span>นำเข้าไฟล์สู่โฟลเดอร์ ({currentDir})</span>
+              </h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {/* Option 1: Upload from Computer */}
+              <div className="p-3.5 bg-gray-950 border border-gray-800 rounded-xl space-y-2">
+                <div className="font-bold text-gray-200 flex items-center justify-between">
+                  <span>📄 1. อัปโหลดจากคอมพิวเตอร์ (PC)</span>
+                </div>
+                <p className="text-gray-400 text-[11px]">
+                  เลือกไฟล์วิดีโอ (.mp4), เสียง (.mp3), ภาพ (.png) หรือเอกสารจากเครื่องคอมพิวเตอร์ของคุณ
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    editorFileInputRef.current?.click();
+                  }}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition"
+                >
+                  💻 เลือกไฟล์จากคอมพิวเตอร์
+                </button>
+              </div>
+
+              <div className="text-center text-[11px] text-gray-500 font-bold">- หรือ -</div>
+
+              {/* Option 2: Import from Google Drive Link/Folder */}
+              <div className="p-3.5 bg-gray-950 border border-indigo-500/30 rounded-xl space-y-2">
+                <div className="font-bold text-indigo-300 flex items-center gap-1.5">
+                  <span>🌐 2. ดึงไฟล์ / โฟลเดอร์จาก Google Drive</span>
+                </div>
+                <p className="text-gray-400 text-[11px]">
+                  วางลิงก์ไฟล์ หรือ ลิงก์โฟลเดอร์ Google Drive เพื่อดึงข้อมูลลงโฟลเดอร์นี้โดยตรง
+                </p>
+                <input
+                  type="text"
+                  placeholder="https://drive.google.com/drive/folders/... หรือ https://drive.google.com/file/d/..."
+                  value={gdriveUrl}
+                  onChange={(e) => setGdriveUrl(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-indigo-500 font-mono"
+                />
+                <button
+                  type="button"
+                  disabled={isImportingGDrive || !gdriveUrl.trim()}
+                  onClick={handleImportGDrive}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5"
+                >
+                  {isImportingGDrive ? '⏳ กำลังดึงข้อมูลจาก Google Drive...' : '📥 ดึงไฟล์จาก Google Drive เข้าโฟลเดอร์นี้'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

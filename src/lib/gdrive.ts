@@ -122,3 +122,90 @@ export async function downloadGDriveFileToWorkspace(
     };
   }
 }
+
+export async function downloadGDriveFolderToWorkspace(
+  folderId: string,
+  targetFolder: string = 'workspace/video-editor/input',
+  googleAccessToken?: string
+): Promise<{ success: boolean; downloadedCount: number; files: string[]; error?: string }> {
+  try {
+    if (!googleAccessToken) {
+      // Try downloading single file fallback
+      const singleRes = await downloadGDriveFileToWorkspace(folderId, targetFolder);
+      if (singleRes.success && singleRes.fileName) {
+        return {
+          success: true,
+          downloadedCount: 1,
+          files: [singleRes.fileName],
+        };
+      }
+      return {
+        success: false,
+        downloadedCount: 0,
+        files: [],
+        error: singleRes.error || 'การดึงโฟลเดอร์ Google Drive จำเป็นต้องผูกบัญชี Google OAuth ในระบบ กรุณากดปุ่มผูกบัญชี Google Drive ใน Member Portal',
+      };
+    }
+
+    const q = `'${folderId}' in parents and trashed = false`;
+    const listRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType)`,
+      {
+        headers: { Authorization: `Bearer ${googleAccessToken}` },
+      }
+    );
+
+    if (!listRes.ok) {
+      const singleRes = await downloadGDriveFileToWorkspace(folderId, targetFolder, googleAccessToken);
+      if (singleRes.success && singleRes.fileName) {
+        return {
+          success: true,
+          downloadedCount: 1,
+          files: [singleRes.fileName],
+        };
+      }
+      return {
+        success: false,
+        downloadedCount: 0,
+        files: [],
+        error: `Google Drive API Error: ${listRes.statusText}`,
+      };
+    }
+
+    const data = await listRes.json();
+    const files = data.files || [];
+    const downloadedFiles: string[] = [];
+
+    for (const f of files) {
+      if (f.mimeType === 'application/vnd.google-apps.folder') continue;
+      const res = await downloadGDriveFileToWorkspace(f.id, targetFolder, googleAccessToken);
+      if (res.success && res.fileName) {
+        downloadedFiles.push(res.fileName);
+      }
+    }
+
+    if (downloadedFiles.length === 0) {
+      const singleRes = await downloadGDriveFileToWorkspace(folderId, targetFolder, googleAccessToken);
+      if (singleRes.success && singleRes.fileName) {
+        return {
+          success: true,
+          downloadedCount: 1,
+          files: [singleRes.fileName],
+        };
+      }
+    }
+
+    return {
+      success: true,
+      downloadedCount: downloadedFiles.length,
+      files: downloadedFiles,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      downloadedCount: 0,
+      files: [],
+      error: err.message,
+    };
+  }
+}

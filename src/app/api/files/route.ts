@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
+import { getCurrentUser } from '@/lib/auth';
+import { extractGDriveId, downloadGDriveFolderToWorkspace } from '@/lib/gdrive';
 
 function getSafePath(relativePath: string) {
   const vpsRoot = process.env.VPS_ROOT_PATH;
@@ -84,6 +86,30 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { action, path: reqPath, content, isDirectory } = body;
     const targetPath = getSafePath(reqPath || '.');
+    if (action === 'import_gdrive') {
+      const { url } = body;
+      const gdriveId = extractGDriveId(url);
+      if (!gdriveId) {
+        return NextResponse.json({ error: 'ไม่พบ ID หรือรูปแบบลิงก์ Google Drive ไม่ถูกต้อง' }, { status: 400 });
+      }
+
+      const currentUser = await getCurrentUser();
+      const res = await downloadGDriveFolderToWorkspace(
+        gdriveId,
+        reqPath || 'workspace/video-editor/input',
+        currentUser?.user?.googleAccessToken
+      );
+
+      if (res.success) {
+        return NextResponse.json({
+          success: true,
+          message: `ดึงไฟล์จาก Google Drive เข้าสู่ ${reqPath} สำเร็จ (${res.downloadedCount} ไฟล์)`,
+          files: res.files,
+        });
+      } else {
+        return NextResponse.json({ error: res.error || 'เกิดข้อผิดพลาดในการดึงไฟล์จาก Google Drive' }, { status: 400 });
+      }
+    }
 
     if (action === 'upload') {
       const { filename, base64 } = body;
