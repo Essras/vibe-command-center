@@ -15,15 +15,56 @@ export async function GET() {
     }
 
     let runningProcesses: string[] = [];
+
+    // 1. Direct Linux /proc filesystem inspection (works on Alpine, Debian, Ubuntu Docker containers 100%)
     try {
-      const { stdout } = await execPromise('ps aux | grep -E "python3|ffmpeg|auto_run" | grep -v grep');
-      runningProcesses = stdout
-        .trim()
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => line.trim());
+      if (fsSync.existsSync('/proc')) {
+        const pids = fsSync.readdirSync('/proc').filter((f) => /^\d+$/.test(f));
+        for (const pid of pids) {
+          try {
+            const cmdline = fsSync.readFileSync(`/proc/${pid}/cmdline`, 'utf-8').replace(/\0/g, ' ').trim();
+            if (
+              cmdline &&
+              !cmdline.includes('status/route') &&
+              (cmdline.includes('python') ||
+                cmdline.includes('ffmpeg') ||
+                cmdline.includes('auto_run') ||
+                cmdline.includes('whisper'))
+            ) {
+              runningProcesses.push(`[PID ${pid}] ${cmdline}`);
+            }
+          } catch (e) {
+            // Process terminated or non-readable
+          }
+        }
+      }
     } catch (e) {
-      runningProcesses = [];
+      // Fallback
+    }
+
+    // 2. Fallback to command execution if /proc scanner found nothing
+    if (runningProcesses.length === 0) {
+      try {
+        const cmd = process.platform === 'win32'
+          ? 'tasklist'
+          : 'ps -ef | grep -E "python3|ffmpeg|auto_run|whisper" | grep -v grep';
+        const { stdout } = await execPromise(cmd);
+        runningProcesses = stdout
+          .trim()
+          .split('\n')
+          .filter((line) => {
+            const l = line.trim();
+            return (
+              l &&
+              (l.includes('python') ||
+                l.includes('ffmpeg') ||
+                l.includes('auto_run') ||
+                l.includes('whisper'))
+            );
+          });
+      } catch (e) {
+        // No processes running
+      }
     }
 
     // Check output files in workspace/video-editor/output
