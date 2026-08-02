@@ -11,21 +11,7 @@ export async function GET() {
 
     const db = getDb();
 
-    // Multi-tenant isolation logic
-    if (currentUser.role === 'admin') {
-      return NextResponse.json({
-        ...db,
-        currentUser: {
-          username: currentUser.username,
-          role: currentUser.role,
-          creditsBalance: currentUser.creditsBalance,
-          googleConnected: currentUser.user?.googleConnected,
-          googleEmail: currentUser.user?.googleEmail,
-        },
-      });
-    }
-
-    // Regular member: Filter projects owned by this user
+    // Multi-tenant isolation logic: Everyone (including admin) sees only their own workspace
     let userProjects = db.projects.filter(
       (p) => p.userId === currentUser.username || (!p.userId && currentUser.username === 'admin')
     );
@@ -60,7 +46,7 @@ export async function GET() {
       autoFallback429: db.autoFallback429,
       favoriteModels: db.favoriteModels,
       chatHistory: userChatHistory,
-      keys: {}, // Hide raw API keys from non-admin users
+      keys: currentUser.role === 'admin' ? db.keys : {}, // Reveal API keys only to admin for settings modal
       currentUser: {
         username: currentUser.username,
         role: currentUser.role,
@@ -103,9 +89,9 @@ export async function POST(req: Request) {
     if (action === 'update_project') {
       const idx = db.projects.findIndex((p) => p.id === project.id);
       if (idx !== -1) {
-        // Enforce ownership check
-        if (currentUser.role !== 'admin' && db.projects[idx].userId !== currentUser.username) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        // Enforce Strict Privacy: Only the owner can update their project
+        if (db.projects[idx].userId && db.projects[idx].userId !== currentUser.username) {
+          return NextResponse.json({ error: 'Forbidden: Private project workspace' }, { status: 403 });
         }
         db.projects[idx] = { ...db.projects[idx], ...project };
         saveDb(db);
@@ -117,8 +103,8 @@ export async function POST(req: Request) {
     if (action === 'delete_project') {
       const targetProj = db.projects.find((p) => p.id === project.id);
       if (targetProj) {
-        if (currentUser.role !== 'admin' && targetProj.userId !== currentUser.username) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (targetProj.userId && targetProj.userId !== currentUser.username) {
+          return NextResponse.json({ error: 'Forbidden: Private project workspace' }, { status: 403 });
         }
       }
       db.projects = db.projects.filter((p) => p.id !== project.id);

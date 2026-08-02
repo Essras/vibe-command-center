@@ -11,6 +11,7 @@ import { SkillsModal } from '@/components/SkillsModal';
 import { UserManagementModal } from '@/components/UserManagementModal';
 import { AdminDashboardModal } from '@/components/AdminDashboardModal';
 import { MemberUsageModal } from '@/components/MemberUsageModal';
+import { MobileBottomBar } from '@/components/MobileBottomBar';
 import { Project, FavoriteModel, ProviderKeys, VibeData } from '@/lib/db';
 
 export default function DashboardPage() {
@@ -259,7 +260,7 @@ export default function DashboardPage() {
         onOpenMemberUsage={() => setIsMemberUsageOpen(true)}
       />
 
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col pb-16 md:pb-0">
         {activeTab === 'chat' ? (
           <ChatInterface
             activeProject={activeProject}
@@ -275,6 +276,21 @@ export default function DashboardPage() {
           <CodeEditor activeProject={activeProject} />
         )}
       </main>
+
+      {/* Mobile Bottom Dock (Touch Optimized, prevents top bar icon overlap) */}
+      <MobileBottomBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        projects={data?.projects || []}
+        activeProjectId={activeProjectId}
+        onSelectProject={setActiveProjectId}
+        onOpenProjectModal={() => setIsProjectModalOpen(true)}
+        favoriteModels={data?.favoriteModels || []}
+        activeModelId={activeModelId}
+        onSelectModel={handleSelectModel}
+        currentUser={data?.currentUser}
+        onOpenMemberUsage={() => setIsMemberUsageOpen(true)}
+      />
 
       {/* Modals */}
       {data && (
