@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: vibe_web_ui
+    user: root
     restart: always
     environment:
       - NODE_ENV=production

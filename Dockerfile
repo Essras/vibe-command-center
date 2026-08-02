@@ -35,10 +35,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.agents ./.agents
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Create data and workspace directory with full write permissions
-RUN mkdir -p /app/data /app/workspace && chown -R nextjs:nodejs /app/data /app/workspace && chmod -R 777 /app/workspace
+# Ensure data and workspace directories have full write permissions
+RUN mkdir -p /app/data /app/workspace && chmod -R 777 /app/workspace /app/data
 
-USER nextjs
+USER root
 
 EXPOSE 3000
 
