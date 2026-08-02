@@ -242,10 +242,12 @@ export async function executeAIRequestWithFallback(
     return;
   }
 
-  // Filter model queue to ONLY include models with valid API keys
+  // Filter model queue to ONLY include user's favorite models with valid API keys
+  // Safety Guard: Never auto-fallback to expensive Opus models during automatic fallback cascade
   const candidateModels = favoriteModels.filter((m) => {
     const k = getProviderApiKey(m.provider, keys);
-    return !!k;
+    const isExpensiveOpus = m.id.toLowerCase().includes('opus') || m.name.toLowerCase().includes('opus');
+    return !!k && !isExpensiveOpus;
   });
 
   const modelQueue: FavoriteModel[] = [initialModel];
