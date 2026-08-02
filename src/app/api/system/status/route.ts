@@ -95,6 +95,17 @@ export async function GET() {
         .filter((f) => f.startsWith('auto_run_') && f.endsWith('.sh'));
     }
 
+    // Check auto_run.log for real-time live logs
+    let logContent = '';
+    const autoLogPath = path.join(workDir, 'auto_run.log');
+    if (fsSync.existsSync(autoLogPath)) {
+      try {
+        const rawLog = fsSync.readFileSync(autoLogPath, 'utf-8');
+        const lines = rawLog.split('\n').filter(Boolean);
+        logContent = lines.slice(-20).join('\n');
+      } catch (e) {}
+    }
+
     const isRunning = runningProcesses.length > 0;
 
     return NextResponse.json({
@@ -106,6 +117,7 @@ export async function GET() {
       activeScriptsCount: activeScripts.length,
       activeScripts,
       outputFiles,
+      logContent,
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {

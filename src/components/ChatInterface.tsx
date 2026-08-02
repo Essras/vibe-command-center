@@ -68,11 +68,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     runningProcesses: string[];
     outputFiles: { name: string; sizeMB: string; modified: string }[];
     activeProcessesCount: number;
+    logContent?: string;
   }>({
     isRunning: false,
     runningProcesses: [],
     outputFiles: [],
     activeProcessesCount: 0,
+    logContent: '',
   });
   const [showStatusModal, setShowStatusModal] = useState(false);
 
@@ -93,6 +95,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             runningProcesses: data.runningProcesses || [],
             outputFiles: data.outputFiles || [],
             activeProcessesCount: data.activeProcessesCount || 0,
+            logContent: data.logContent || '',
           });
         }
       } catch (e) {}
@@ -701,6 +704,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <div key={i} className="truncate">• {p}</div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {vpsStatus.logContent && (
+                <div>
+                  <div className="font-semibold text-gray-300 mb-1">📋 Live Execution Log (auto_run.log):</div>
+                  <pre className="bg-gray-950 p-2.5 rounded border border-gray-800 font-mono text-[10px] text-emerald-400 max-h-36 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                    {vpsStatus.logContent}
+                  </pre>
                 </div>
               )}
 

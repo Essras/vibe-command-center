@@ -213,7 +213,8 @@ export async function POST(req: Request) {
             const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
             const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
 
-            const scriptContent = `#!/bin/bash\ncd "${workDir}"\nmkdir -p input output temp transcript reports\nln -s . workspace 2>/dev/null || true\n` + commandsToRun.join('\n');
+            const logPath = path.join(workDir, 'auto_run.log');
+            const scriptContent = `#!/bin/bash\nexec > "${logPath}" 2>&1\ncd "${workDir}"\nmkdir -p input output temp transcript reports\nln -s . workspace 2>/dev/null || true\n` + commandsToRun.join('\n');
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
