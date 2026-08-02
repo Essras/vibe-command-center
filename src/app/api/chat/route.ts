@@ -161,16 +161,16 @@ export async function POST(req: Request) {
               .replace(/```$/, '')
               .trim();
 
-            const lines = cleanCode.split('\n');
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (
-                trimmed &&
-                !trimmed.startsWith('#') &&
-                (trimmed.includes('python') || trimmed.includes('ffmpeg') || trimmed.includes('easy_ai_editor') || trimmed.includes('whisper'))
-              ) {
-                commandsToRun.push(trimmed);
-              }
+            if (
+              cleanCode &&
+              (cleanCode.includes('python') ||
+                cleanCode.includes('ffmpeg') ||
+                cleanCode.includes('easy_ai_editor') ||
+                cleanCode.includes('whisper') ||
+                cleanCode.includes('#!/bin/bash'))
+            ) {
+              commandsToRun.push(cleanCode);
+              break;
             }
           }
         }
