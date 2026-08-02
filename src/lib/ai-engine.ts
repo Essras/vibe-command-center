@@ -200,7 +200,14 @@ export function resolveModelCategory(
   const available = validModels.length > 0 ? validModels : favoriteModels;
 
   if (modelId === 'fast') {
-    return available.find((m) => m.id.includes('flash') || m.id.includes('mini') || m.id.includes('haiku') || m.id.includes('gemma')) || available[0];
+    return (
+      available.find(
+        (m) =>
+          !m.name.toLowerCase().includes('opus') &&
+          !m.id.toLowerCase().includes('opus') &&
+          (m.id.includes('flash') || m.id.includes('mini') || m.id.includes('haiku') || m.id.includes('gemma'))
+      ) || available[0]
+    );
   }
   if (modelId === 'balanced') {
     return available.find((m) => m.id.includes('sonnet') || m.id.includes('gpt-4o') || m.id.includes('pro') || m.id.includes('deepseek')) || available[0];

@@ -123,7 +123,20 @@ export async function POST(req: Request) {
       if (favoriteModels) db.favoriteModels = favoriteModels;
       if (activeModelId) db.activeModelId = activeModelId;
       saveDb(db);
-      return NextResponse.json({ success: true, db });
+
+      return NextResponse.json({
+        success: true,
+        db: {
+          ...db,
+          currentUser: {
+            username: currentUser.username,
+            role: currentUser.role,
+            creditsBalance: currentUser.creditsBalance,
+            googleConnected: currentUser.user?.googleConnected,
+            googleEmail: currentUser.user?.googleEmail,
+          },
+        },
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
