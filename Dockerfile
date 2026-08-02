@@ -27,19 +27,15 @@ ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
 # Install video processing tools
-# Note: openai-whisper requires PyTorch (too heavy for Alpine)
-# Use faster-whisper (CTranslate2 backend) — lighter, no PyTorch needed
+# Transcription handled via OpenAI Whisper API (no local model needed)
 RUN apk add --no-cache \
     bash \
     ffmpeg \
     python3 \
     py3-pip \
-    py3-setuptools \
-    py3-numpy \
-    && pip3 install --no-cache-dir --break-system-packages \
-    faster-whisper \
-    requests \
-    && rm -rf /root/.cache /tmp/pip-*
+    curl \
+    && pip3 install --no-cache-dir --break-system-packages requests \
+    && rm -rf /root/.cache
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
