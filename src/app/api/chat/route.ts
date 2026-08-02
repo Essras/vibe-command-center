@@ -145,10 +145,11 @@ export async function POST(req: Request) {
         );
 
         // 🚀 AUTOMATIC VPS BACKGROUND EXECUTION PIPELINE
-        // Extract bash/sh code blocks or python3/ffmpeg commands and auto-run on VPS
+        // Extract bash/sh code blocks or auto-detect media files in input folder to run on VPS
         const codeBlockMatches = fullAssistantMessage.match(/```(?:bash|sh|shell)?\s*([\s\S]*?)```/gi);
+        const commandsToRun: string[] = [];
+
         if (codeBlockMatches && codeBlockMatches.length > 0) {
-          const commandsToRun: string[] = [];
           for (const block of codeBlockMatches) {
             const cleanCode = block
               .replace(/^```(?:bash|sh|shell)?\s*/i, '')
@@ -167,8 +168,29 @@ export async function POST(req: Request) {
               }
             }
           }
+        }
 
-          if (commandsToRun.length > 0) {
+        // Fallback: If AI model outputted text progress without code block, but input/ contains media files
+        if (commandsToRun.length === 0) {
+          const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
+          const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
+          const inputDir = path.join(workDir, 'input');
+
+          if (fsSync.existsSync(inputDir)) {
+            const mediaFiles = fsSync
+              .readdirSync(inputDir)
+              .filter((f) => !f.startsWith('.') && f !== '.gitkeep');
+
+            if (mediaFiles.length > 0) {
+              const mainFile = mediaFiles[0];
+              commandsToRun.push(
+                `python3 -m easy_ai_editor.editor --input "input/${mainFile}" --output "output/" || ffmpeg -i "input/${mainFile}" -c:v copy "output/output_${mainFile}"`
+              );
+            }
+          }
+        }
+
+        if (commandsToRun.length > 0) {
             const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
             const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
 
@@ -196,7 +218,6 @@ export async function POST(req: Request) {
               console.error('Auto exec error:', e);
             }
           }
-        }
 
         // Save chat history to DB
         if (projectId && fullAssistantMessage) {
