@@ -16,6 +16,7 @@ services:
       - VPS_ROOT_PATH=/vps_data
     volumes:
       - vibe_data:/app/data
+      - ./workspace:/app/workspace:rw
       - /:/vps_data:rw # Mount VPS root filesystem for browser file manager
     ports:
       - "3000:3000"

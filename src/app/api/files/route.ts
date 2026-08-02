@@ -7,23 +7,28 @@ function getSafePath(relativePath: string) {
   const vpsRoot = process.env.VPS_ROOT_PATH;
   const appRoot = process.cwd();
 
-  let cleanPath = (relativePath || '.').trim().replace(/^(\.\/)/, '');
+  let cleanPath = (relativePath || '.').trim().replace(/^(\.\/|\/)/, '');
 
   if (cleanPath.startsWith('workspace') || cleanPath === '.' || !cleanPath) {
-    const appResolved = path.resolve(appRoot, cleanPath);
-    if (fsSync.existsSync(appResolved)) {
-      return appResolved;
+    const appTarget = path.resolve(appRoot, cleanPath || '.');
+    if (fsSync.existsSync(appTarget)) {
+      return appTarget;
     }
   }
 
   if (vpsRoot && fsSync.existsSync(vpsRoot)) {
-    const vpsTarget = path.resolve(vpsRoot, cleanPath.replace(/^\//, ''));
-    if (fsSync.existsSync(vpsTarget)) {
-      return vpsTarget;
+    const vpsProjectTarget = path.resolve(vpsRoot, 'root/vibe-command-center', cleanPath);
+    if (fsSync.existsSync(vpsProjectTarget)) {
+      return vpsProjectTarget;
+    }
+
+    const vpsDirectTarget = path.resolve(vpsRoot, cleanPath);
+    if (fsSync.existsSync(vpsDirectTarget)) {
+      return vpsDirectTarget;
     }
   }
 
-  return path.resolve(appRoot, cleanPath);
+  return path.resolve(appRoot, cleanPath || '.');
 }
 
 export async function GET(req: Request) {
