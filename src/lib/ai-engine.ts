@@ -108,7 +108,30 @@ export async function callAIProvider(
     }
 
     if (provider === 'okmd') {
-      headers['api-key'] = apiKey;
+      const cleanKey = apiKey.replace(/^Bearer\s+/i, '').trim();
+
+      const headersOptions: Record<string, string>[] = [
+        {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cleanKey}`,
+          'api-key': cleanKey,
+          'x-api-key': cleanKey,
+        },
+        {
+          'Content-Type': 'application/json',
+          Authorization: cleanKey,
+          'api-key': cleanKey,
+        },
+      ];
+
+      const urlOptions = Array.from(
+        new Set([
+          baseUrl,
+          'https://gen.ai.kku.ac.th/okmd/api/v1/chat/completions',
+          'https://playground.okmd.or.th/api/v1/chat/completions',
+          'https://gen.ai.kku.ac.th/api/v1/chat/completions',
+        ])
+      );
 
       // Normalize OKMD display names (e.g. "[FREE QUOTA 🟢] Claude") to standard OKMD model strings
       let okmdModel = modelId;
@@ -119,35 +142,37 @@ export async function callAIProvider(
       else if (lower.includes('openai') || lower.includes('gpt')) okmdModel = 'gpt-4o-mini';
       else if (lower.includes('qwen')) okmdModel = 'qwen-2.5-coder-32b-instruct';
       else if (lower.includes('xai') || lower.includes('grok')) okmdModel = 'grok-2';
+      else if (lower.includes('auto')) okmdModel = 'auto';
 
-      const resPrimary = await fetch(baseUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: okmdModel,
-          messages: formattedMessages,
-          stream: true,
-        }),
-      });
+      let lastRes: Response | null = null;
 
-      if (!resPrimary.ok && (resPrimary.status === 503 || resPrimary.status === 404)) {
-        const altBaseUrl = baseUrl.includes('gen.ai.kku.ac.th')
-          ? 'https://playground.okmd.or.th/api/v1/chat/completions'
-          : 'https://gen.ai.kku.ac.th/okmd/api/v1/chat/completions';
+      for (const targetUrl of urlOptions) {
+        for (const headersObj of headersOptions) {
+          try {
+            const res = await fetch(targetUrl, {
+              method: 'POST',
+              headers: headersObj,
+              body: JSON.stringify({
+                model: okmdModel,
+                messages: formattedMessages,
+                stream: true,
+              }),
+            });
 
-        console.warn(`OKMD endpoint returned ${resPrimary.status}. Retrying alternate URL ${altBaseUrl}...`);
-        return fetch(altBaseUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model: okmdModel,
-            messages: formattedMessages,
-            stream: true,
-          }),
-        });
+            if (res.ok || res.status === 200) {
+              return res;
+            }
+            lastRes = res;
+          } catch (err) {}
+        }
       }
 
-      return resPrimary;
+      return (
+        lastRes ||
+        new Response(JSON.stringify({ error: 'ไม่สามารถเชื่อมต่อ OKMD Endpoint ได้' }), {
+          status: 401,
+        })
+      );
     }
 
     return fetch(baseUrl, {
