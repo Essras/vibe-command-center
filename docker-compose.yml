@@ -19,6 +19,11 @@ services:
       - /:/vps_data:rw # Mount VPS root filesystem for browser file manager
     ports:
       - "3000:3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   caddy:
     image: caddy:2-alpine
@@ -33,6 +38,11 @@ services:
       - caddy_config:/config
     depends_on:
       - web-ui
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   vibe_data:
