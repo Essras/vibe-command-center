@@ -228,7 +228,8 @@ export async function POST(req: Request) {
             });
 
             // Write flag file at start, clean it at end of script
-            const scriptContent = `#!/bin/bash\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\nln -s . workspace 2>/dev/null || true\n\n${wrappedBlocks.join('\n\n')}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
+            // NOTE: Alpine Linux has no bash — use sh
+            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${wrappedBlocks.join('\n\n')}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
@@ -236,7 +237,7 @@ export async function POST(req: Request) {
               await fs.writeFile(flagPath, new Date().toISOString(), 'utf-8');
               await fs.writeFile(scriptPath, scriptContent, { mode: 0o755 });
 
-              const child = child_process.spawn('bash', [scriptPath], {
+              const child = child_process.spawn('sh', [scriptPath], {
                 cwd: workDir,
                 detached: true,
                 stdio: 'ignore',
