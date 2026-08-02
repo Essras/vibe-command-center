@@ -54,8 +54,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<{ name: string; type: string; content: string }[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isGDriveModalOpen, setIsGDriveModalOpen] = useState(false);
+  const [gdriveUrlInput, setGdriveUrlInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddGDriveLink = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!gdriveUrlInput.trim()) return;
+
+    const gdriveMatch = gdriveUrlInput.match(/(?:drive|docs)\.google\.com\/(?:file\/d\/|document\/d\/|spreadsheets\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
+    const fileId = gdriveMatch ? gdriveMatch[1] : gdriveUrlInput.trim();
+    const fileName = `Google Drive File (${fileId.slice(0, 10)}...)`;
+
+    setAttachments((prev) => [
+      ...prev,
+      {
+        name: fileName,
+        type: 'application/gdrive',
+        content: gdriveUrlInput.trim(),
+      },
+    ]);
+
+    setGdriveUrlInput('');
+    setIsGDriveModalOpen(false);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -389,45 +412,53 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Input Area */}
       <div className="p-3 md:p-4 bg-gray-900/90 border-t border-gray-800/80 backdrop-blur-md shrink-0">
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-2">
-          {/* Attachments Chips */}
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {attachments.map((att, i) => {
-                const isImage = att.type?.startsWith('image/') || att.content?.startsWith('data:image/');
-                const isGDrive = att.type === 'application/gdrive';
-                return (
-                  <div
-                    key={i}
-                    className={`flex items-center space-x-1.5 border text-xs px-2.5 py-1 rounded-xl shadow-sm ${
-                      isGDrive
-                        ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200'
-                        : 'bg-gray-800/90 border-gray-700 text-gray-200'
-                    }`}
+          {/* Attachments & Actions Chips */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {attachments.map((att, i) => {
+              const isImage = att.type?.startsWith('image/') || att.content?.startsWith('data:image/');
+              const isGDrive = att.type === 'application/gdrive';
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center space-x-1.5 border text-xs px-2.5 py-1 rounded-xl shadow-sm ${
+                    isGDrive
+                      ? 'bg-emerald-950/90 border-emerald-500/60 text-emerald-200'
+                      : 'bg-gray-800/90 border-gray-700 text-gray-200'
+                  }`}
+                >
+                  {isImage ? (
+                    <img
+                      src={att.content}
+                      alt={att.name}
+                      className="w-7 h-7 object-cover rounded-lg border border-indigo-500/50"
+                    />
+                  ) : isGDrive ? (
+                    <Globe className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                  )}
+                  <span className="truncate max-w-[170px] font-medium">{att.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(i)}
+                    className="text-gray-400 hover:text-red-400 ml-1 p-0.5 rounded-lg hover:bg-gray-700 transition"
                   >
-                    {isImage ? (
-                      <img
-                        src={att.content}
-                        alt={att.name}
-                        className="w-7 h-7 object-cover rounded-lg border border-indigo-500/50"
-                      />
-                    ) : isGDrive ? (
-                      <Globe className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                    ) : (
-                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                    )}
-                    <span className="truncate max-w-[170px] font-medium">{att.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(i)}
-                      className="text-gray-400 hover:text-red-400 ml-1 p-0.5 rounded-lg hover:bg-gray-700 transition"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => setIsGDriveModalOpen(true)}
+              className="flex items-center space-x-1.5 border text-xs px-2.5 py-1 rounded-xl shadow-sm bg-emerald-950/70 hover:bg-emerald-900/90 border-emerald-500/50 text-emerald-300 transition"
+              title="กดเพื่อเปิด/วางแนบลิงก์ไฟล์หรือโฟลเดอร์จาก Google Drive"
+            >
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-semibold">+ Google Drive</span>
+            </button>
+          </div>
 
           <div className="relative flex items-center">
             <input
@@ -472,6 +503,71 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Google Drive Link Modal */}
+      {isGDriveModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <div className="flex items-center space-x-2 text-emerald-400">
+                <Globe className="w-5 h-5 animate-pulse" />
+                <h3 className="font-bold text-sm text-white">แนบไฟล์สื่อจาก Google Drive</h3>
+              </div>
+              <button
+                onClick={() => setIsGDriveModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-gray-300 leading-relaxed">
+                วางลิงก์ Google Drive (ไฟล์วิดีโอ, เสียง, สคริปต์ หรือโฟลเดอร์งาน) เพื่อดึงไฟล์เข้าสู่โฟลเดอร์ <code className="text-emerald-400 font-mono">input/</code> ของ Workspace นี้ให้อัตโนมัติ:
+              </p>
+
+              <form onSubmit={handleAddGDriveLink} className="space-y-3">
+                <input
+                  type="text"
+                  value={gdriveUrlInput}
+                  onChange={(e) => setGdriveUrlInput(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/123xyz..."
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  autoFocus
+                />
+
+                <div className="flex items-center justify-between pt-2">
+                  <a
+                    href="https://drive.google.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-emerald-400 hover:underline flex items-center space-x-1"
+                  >
+                    <span>🔗 เปิด Google Drive (drive.google.com)</span>
+                  </a>
+
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsGDriveModalOpen(false)}
+                      className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-xl transition"
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!gdriveUrlInput.trim()}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-xl shadow-md shadow-emerald-600/30 transition disabled:opacity-50"
+                    >
+                      + แนบไฟล์
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
