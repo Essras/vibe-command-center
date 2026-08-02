@@ -42,14 +42,33 @@ export default function DashboardPage() {
       }
       const dbData: VibeData = await res.json();
       setData(dbData);
-      if (dbData.activeModelId) setActiveModelId(dbData.activeModelId);
-      if (dbData.projects.length > 0) {
-        if (!dbData.projects.some((p) => p.id === activeProjectId)) {
-          setActiveProjectId(dbData.projects[0].id);
-        }
+
+      const username = dbData.currentUser?.username;
+
+      // Restore active model from user preference / localStorage
+      const savedModel = username ? localStorage.getItem(`vibe_active_model_${username}`) : null;
+      if (savedModel) {
+        setActiveModelId(savedModel);
+      } else if (dbData.activeModelId) {
+        setActiveModelId(dbData.activeModelId);
+      }
+
+      // Restore active project from user preference / localStorage
+      const savedProj = username ? localStorage.getItem(`vibe_active_project_${username}`) : null;
+      if (savedProj && dbData.projects.some((p) => p.id === savedProj)) {
+        setActiveProjectId(savedProj);
+      } else if (dbData.projects.length > 0) {
+        setActiveProjectId(dbData.projects[0].id);
       }
     } catch (err) {
       console.error('Failed to load DB:', err);
+    }
+  };
+
+  const handleSelectProject = (projId: string) => {
+    setActiveProjectId(projId);
+    if (data?.currentUser?.username) {
+      localStorage.setItem(`vibe_active_project_${data.currentUser.username}`, projId);
     }
   };
 
@@ -169,12 +188,24 @@ export default function DashboardPage() {
     }
   };
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
     setMessages([]);
+    if (activeProjectId) {
+      try {
+        await fetch(`/api/chat?projectId=${activeProjectId}`, {
+          method: 'DELETE',
+        });
+      } catch (err) {
+        console.error('Failed to clear chat history from server:', err);
+      }
+    }
   };
 
   const handleSelectModel = async (modelId: string) => {
     setActiveModelId(modelId);
+    if (data?.currentUser?.username) {
+      localStorage.setItem(`vibe_active_model_${data.currentUser.username}`, modelId);
+    }
     if (data) {
       await fetch('/api/projects', {
         method: 'POST',
@@ -246,7 +277,7 @@ export default function DashboardPage() {
       <Navbar
         projects={data?.projects || []}
         activeProjectId={activeProjectId}
-        onSelectProject={setActiveProjectId}
+        onSelectProject={handleSelectProject}
         onOpenProjectModal={() => setIsProjectModalOpen(true)}
         favoriteModels={data?.favoriteModels || []}
         activeModelId={activeModelId}

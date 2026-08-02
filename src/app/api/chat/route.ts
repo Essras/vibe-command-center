@@ -133,3 +133,32 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const projectId = searchParams.get('projectId');
+    if (!projectId) {
+      return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+    }
+
+    const db = getDb();
+    const project = db.projects.find((p) => p.id === projectId);
+    if (project && project.userId && project.userId !== currentUser.username) {
+      return NextResponse.json({ error: 'Forbidden: Private workspace' }, { status: 403 });
+    }
+
+    // Permanently delete chat history for this project
+    delete db.chatHistory[projectId];
+    saveDb(db);
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
