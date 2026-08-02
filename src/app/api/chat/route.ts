@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import fsSync from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
+import child_process from 'child_process';
 import { getDb, saveDb } from '@/lib/db';
 import { executeAIRequestWithFallback } from '@/lib/ai-engine';
 import { getCurrentUser } from '@/lib/auth';
@@ -141,6 +143,60 @@ export async function POST(req: Request) {
             controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
           }
         );
+
+        // 🚀 AUTOMATIC VPS BACKGROUND EXECUTION PIPELINE
+        // Extract bash/sh code blocks or python3/ffmpeg commands and auto-run on VPS
+        const codeBlockMatches = fullAssistantMessage.match(/```(?:bash|sh|shell)?\s*([\s\S]*?)```/gi);
+        if (codeBlockMatches && codeBlockMatches.length > 0) {
+          const commandsToRun: string[] = [];
+          for (const block of codeBlockMatches) {
+            const cleanCode = block
+              .replace(/^```(?:bash|sh|shell)?\s*/i, '')
+              .replace(/```$/, '')
+              .trim();
+
+            const lines = cleanCode.split('\n');
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (
+                trimmed &&
+                !trimmed.startsWith('#') &&
+                (trimmed.includes('python') || trimmed.includes('ffmpeg') || trimmed.includes('easy_ai_editor') || trimmed.includes('whisper'))
+              ) {
+                commandsToRun.push(trimmed);
+              }
+            }
+          }
+
+          if (commandsToRun.length > 0) {
+            const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
+            const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
+
+            const scriptContent = `#!/bin/bash\ncd "${workDir}"\n` + commandsToRun.join('\n');
+            const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
+
+            try {
+              await fs.writeFile(scriptPath, scriptContent, { mode: 0o755 });
+
+              const child = child_process.spawn('bash', [scriptPath], {
+                cwd: workDir,
+                detached: true,
+                stdio: 'ignore',
+              });
+              child.unref();
+
+              const autoExecNotice = `\n\n---\n⚡ 🚀 **[ระบบทำการรันสคริปต์ในหลังบ้านให้อัตโนมัติ 100% (Auto VPS Background Execution)]:**\nเซิร์ฟเวอร์ VPS ได้ทำการสั่งรันสคริปต์ประมวลผลตัดต่อวิดีโอนี้ในเบื้องหลังให้อัตโนมัติเรียบร้อยแล้ว!\n• **สคริปต์ที่รันบน VPS**: \n\`\`\`bash\n${commandsToRun.join('\n')}\n\`\`\`\n• **โฟลเดอร์ผลลัพธ์**: \`${targetWorkspace}/output/\`\n💡 **คุณสามารถปิดคอมพิวเตอร์พับจอไปได้ทันทีครับ!** เซิร์ฟเวอร์จะทำงานต่อในหลังบ้านจนเสร็จสมบูรณ์ และส่งไฟล์ผลลัพธ์ไปเก็บในโฟลเดอร์ \`output/\` สำหรับเปิดดูเมื่อคุณเปิดคอมกลับมา`;
+
+              fullAssistantMessage += autoExecNotice;
+
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: autoExecNotice })}\n\n`)
+              );
+            } catch (e: any) {
+              console.error('Auto exec error:', e);
+            }
+          }
+        }
 
         // Save chat history to DB
         if (projectId && fullAssistantMessage) {
