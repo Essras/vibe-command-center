@@ -348,12 +348,17 @@ export async function executeAIRequestWithFallback(
               }
             }
           } else {
-            // OpenAI / OpenRouter / OKMD standard SSE
-            if (trimmed.startsWith('data:')) {
-              const dataStr = trimmed.slice(5).trim();
-              if (dataStr === '[DONE]') continue;
-              try {
-                const data = JSON.parse(dataStr);
+            // OpenAI / OpenRouter / OKMD standard SSE & JSON parser
+            try {
+              let jsonStr = '';
+              if (trimmed.startsWith('data:')) {
+                jsonStr = trimmed.slice(5).trim();
+              } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                jsonStr = trimmed;
+              }
+
+              if (jsonStr && jsonStr !== '[DONE]') {
+                const data = JSON.parse(jsonStr);
                 if (data.error) {
                   const errMsg = data.error.message || JSON.stringify(data.error);
                   if (errMsg.toLowerCase().includes('rate limit') || data.error.code === 429) {
@@ -362,19 +367,35 @@ export async function executeAIRequestWithFallback(
                   }
                   throw new Error(errMsg);
                 }
-                const chunkText = data.choices?.[0]?.delta?.content;
+                const chunkText =
+                  data.choices?.[0]?.delta?.content ||
+                  data.choices?.[0]?.text ||
+                  data.choices?.[0]?.message?.content ||
+                  data.content ||
+                  data.text ||
+                  data.response ||
+                  (typeof data.delta === 'string' ? data.delta : undefined);
+
                 if (chunkText) {
                   streamHasPayload = true;
                   onChunk({ text: chunkText, modelUsed: currentModel.name });
                 }
-              } catch (e: any) {
-                if (e.message && !e.message.includes('JSON')) {
-                  throw e;
-                }
+              }
+            } catch (e: any) {
+              if (e.message && !e.message.includes('JSON')) {
+                throw e;
               }
             }
           }
         }
+      }
+
+      if (!streamHasPayload) {
+        onChunk({
+          error: `[${currentModel.provider.toUpperCase()}] ${currentModel.name}: ไม่ได้รับข้อความตอบกลับจาก API (Empty Stream Response)`,
+          done: true,
+        });
+        return;
       }
 
       // Successful completion
