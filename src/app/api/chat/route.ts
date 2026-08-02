@@ -211,7 +211,9 @@ export async function POST(req: Request) {
         }
 
         if (commandsToRun.length > 0) {
+            // Always use workspace/video-editor as the canonical work directory
             const targetWorkspace = project?.vpsFolder || 'workspace/video-editor';
+            // Ensure we always resolve relative to app root, strip any leading / or ./
             const workDir = path.resolve(process.cwd(), targetWorkspace.replace(/^(\.\/|\/)/, ''));
 
             const logPath = path.join(workDir, 'auto_run.log');
@@ -221,15 +223,31 @@ export async function POST(req: Request) {
             const wrappedBlocks = commandsToRun.map((code, idx) => {
               const isBashBlock = code.includes('ffmpeg') || code.includes('#!/') || code.includes('mkdir') || code.startsWith('#');
               const isPythonBlock = (code.includes('import ') || code.includes('def ') || code.includes('subprocess')) && !isBashBlock;
+
+              // Sanitize GPU-only ffmpeg flags → CPU fallback (no NVIDIA on this VPS)
+              let sanitized = code
+                .replace(/-c:v\s+h264_nvenc/g, '-c:v libx264')
+                .replace(/-c:v\s+hevc_nvenc/g, '-c:v libx265')
+                .replace(/-cq\s+\d+/g, '-crf 26')
+                .replace(/-preset\s+p\d+/g, '-preset fast')
+                .replace(/h264_nvenc/g, 'libx264')
+                .replace(/hevc_nvenc/g, 'libx265');
+
               if (isPythonBlock) {
-                return `python3 << 'PYEOF_${idx}'\n${code}\nPYEOF_${idx}`;
+                return `python3 << 'PYEOF_${idx}'\n${sanitized}\nPYEOF_${idx}`;
               }
-              return code;
+              return sanitized;
             });
+
+            // Script header: detect GPU → set ENCODER var (falls back to libx264 gracefully)
+            const gpuDetect = `# Auto-detect GPU encoder (falls back to libx264 if no NVIDIA GPU)
+ENCODER="libx264"
+ffmpeg -encoders 2>/dev/null | grep -q "h264_nvenc" && ENCODER="h264_nvenc"
+echo "[GPU] Using encoder: $ENCODER"`;
 
             // Write flag file at start, clean it at end of script
             // NOTE: Alpine Linux has no bash — use sh
-            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${wrappedBlocks.join('\n\n')}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
+            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${gpuDetect}\n\n${wrappedBlocks.join('\n\n')}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
