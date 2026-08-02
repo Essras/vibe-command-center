@@ -107,6 +107,49 @@ export async function callAIProvider(
       headers['X-Title'] = 'Vibe Command Center';
     }
 
+    if (provider === 'okmd') {
+      headers['api-key'] = apiKey;
+
+      // Normalize OKMD display names (e.g. "[FREE QUOTA 🟢] Claude") to standard OKMD model strings
+      let okmdModel = modelId;
+      const lower = modelId.toLowerCase();
+      if (lower.includes('claude')) okmdModel = 'claude-3-5-sonnet';
+      else if (lower.includes('gemini')) okmdModel = 'gemini-1.5-flash';
+      else if (lower.includes('deepseek')) okmdModel = 'deepseek-chat';
+      else if (lower.includes('openai') || lower.includes('gpt')) okmdModel = 'gpt-4o-mini';
+      else if (lower.includes('qwen')) okmdModel = 'qwen-2.5-coder-32b-instruct';
+      else if (lower.includes('xai') || lower.includes('grok')) okmdModel = 'grok-2';
+
+      const resPrimary = await fetch(baseUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: okmdModel,
+          messages: formattedMessages,
+          stream: true,
+        }),
+      });
+
+      if (!resPrimary.ok && (resPrimary.status === 503 || resPrimary.status === 404)) {
+        const altBaseUrl = baseUrl.includes('gen.ai.kku.ac.th')
+          ? 'https://playground.okmd.or.th/api/v1/chat/completions'
+          : 'https://gen.ai.kku.ac.th/okmd/api/v1/chat/completions';
+
+        console.warn(`OKMD endpoint returned ${resPrimary.status}. Retrying alternate URL ${altBaseUrl}...`);
+        return fetch(altBaseUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: okmdModel,
+            messages: formattedMessages,
+            stream: true,
+          }),
+        });
+      }
+
+      return resPrimary;
+    }
+
     return fetch(baseUrl, {
       method: 'POST',
       headers,
