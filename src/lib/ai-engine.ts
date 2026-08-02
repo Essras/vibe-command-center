@@ -148,25 +148,52 @@ export async function callAIProvider(
   throw new Error(`Unsupported provider ${provider}`);
 }
 
+export function resolveModelCategory(
+  modelId: string,
+  favoriteModels: FavoriteModel[],
+  keys: ProviderKeys
+): FavoriteModel {
+  // Check exact match first
+  const exact = favoriteModels.find((m) => m.id === modelId);
+  if (exact) return exact;
+
+  // Filter models that have configured API keys
+  const validModels = favoriteModels.filter((m) => {
+    if (m.provider === 'gemini') return !!(keys.geminiApiKey?.trim() || process.env.GEMINI_API_KEY);
+    if (m.provider === 'openai') return !!(keys.openaiApiKey?.trim() || process.env.OPENAI_API_KEY);
+    if (m.provider === 'claude') return !!(keys.claudeApiKey?.trim() || process.env.ANTHROPIC_API_KEY);
+    if (m.provider === 'openrouter') return !!(keys.openrouterApiKey?.trim() || process.env.OPENROUTER_API_KEY);
+    if (m.provider === 'okmd') return !!(keys.okmdApiKey?.trim());
+    return false;
+  });
+
+  const available = validModels.length > 0 ? validModels : favoriteModels;
+
+  if (modelId === 'fast') {
+    return available.find((m) => m.id.includes('flash') || m.id.includes('mini') || m.id.includes('haiku') || m.id.includes('gemma')) || available[0];
+  }
+  if (modelId === 'balanced') {
+    return available.find((m) => m.id.includes('sonnet') || m.id.includes('gpt-4o') || m.id.includes('pro') || m.id.includes('deepseek')) || available[0];
+  }
+  if (modelId === 'reasoning') {
+    return available.find((m) => m.id.includes('r1') || m.id.includes('o1') || m.id.includes('o3') || m.id.includes('reasoning') || m.id.includes('thinking')) || available[0];
+  }
+  if (modelId === 'vision') {
+    return available.find((m) => m.id.includes('vision') || m.id.includes('4o') || m.id.includes('gemini')) || available[0];
+  }
+
+  // Default "auto": pick first available model with configured key
+  return available[0] || favoriteModels[0] || { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini' };
+}
+
 export async function executeAIRequestWithFallback(
   payload: ChatPayload,
   onChunk: (chunk: StreamChunk) => void
 ) {
   const { modelId, messages, systemPrompt, keys, favoriteModels, autoFallback429 } = payload;
 
-  // Infer provider safely if model not explicitly in favoriteModels list
-  const foundModel = favoriteModels.find((m) => m.id === modelId);
-  const initialModel: FavoriteModel = foundModel || {
-    id: modelId,
-    name: modelId,
-    provider: modelId.includes('claude')
-      ? 'claude'
-      : modelId.includes('gpt') || modelId.startsWith('o1') || modelId.startsWith('o3')
-      ? 'openai'
-      : modelId.includes('gemini')
-      ? 'gemini'
-      : 'okmd',
-  };
+  // Resolve category aliases ("auto", "fast", "balanced", "reasoning", "vision") to a real model
+  const initialModel = resolveModelCategory(modelId, favoriteModels, keys);
 
   // Ensure initial model provider has an API Key
   const initialKey = getProviderApiKey(initialModel.provider, keys);
