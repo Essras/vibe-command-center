@@ -245,9 +245,26 @@ ENCODER="libx264"
 ffmpeg -encoders 2>/dev/null | grep -q "h264_nvenc" && ENCODER="h264_nvenc"
 echo "[GPU] Using encoder: $ENCODER"`;
 
+            // Guaranteed fallback: always produce output even if AI commands fail
+            const fallbackBlock = `# === GUARANTEED FALLBACK: produce output if AI commands failed ===
+INPUT_FILE=$(ls input/*.mp4 input/*.mov input/*.avi input/*.mkv 2>/dev/null | head -1)
+if [ -n "$INPUT_FILE" ]; then
+  BASENAME=$(basename "$INPUT_FILE")
+  OUTPUT_FILE="output/draft_$BASENAME"
+  if [ ! -f "$OUTPUT_FILE" ]; then
+    echo "[FALLBACK] AI commands produced no output. Running simple encode..."
+    ffmpeg -y -i "$INPUT_FILE" \\
+      -vf "drawtext=text='DRAFT - AUTO PROCESSED':x=(w-text_w)/2:y=60:fontsize=40:fontcolor=white:box=1:boxcolor=black@0.5" \\
+      -c:v libx264 -preset fast -crf 26 -c:a aac -b:a 128k \\
+      "$OUTPUT_FILE" && echo "[FALLBACK] Done: $OUTPUT_FILE"
+  else
+    echo "[SUCCESS] Output exists: $OUTPUT_FILE"
+  fi
+fi`;
+
             // Write flag file at start, clean it at end of script
             // NOTE: Alpine Linux has no bash — use sh
-            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${gpuDetect}\n\n${wrappedBlocks.join('\n\n')}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
+            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${gpuDetect}\n\n${wrappedBlocks.join('\n\n')}\n\n${fallbackBlock}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
