@@ -18,6 +18,7 @@ import {
   User,
   RefreshCw,
   Globe,
+  Cpu,
 } from 'lucide-react';
 import { FavoriteModel, Project } from '@/lib/db';
 
@@ -239,18 +240,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={() => setShowStatusModal(true)}
-            className={`px-2.5 py-1 text-[11px] font-medium rounded-lg flex items-center gap-1.5 transition border ${
+            className={`px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition shadow border ${
               vpsStatus.isRunning
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 animate-pulse'
-                : 'bg-gray-800/80 text-gray-300 border-gray-700 hover:bg-gray-800'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-amber-500/10'
+                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
             }`}
             title="คลิกเพื่อดูสถานะโปรเซสงานบน VPS"
           >
-            <span className={`w-2 h-2 rounded-full ${vpsStatus.isRunning ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`}></span>
+            <Cpu className={`w-3.5 h-3.5 ${vpsStatus.isRunning ? 'text-amber-400 animate-spin' : 'text-emerald-400'}`} />
             <span>
               {vpsStatus.isRunning
                 ? `VPS: กำลังรันงาน (${vpsStatus.activeProcessesCount})`
-                : 'VPS Status: พร้อมใช้งาน'}
+                : 'VPS: พร้อมใช้งาน'}
             </span>
           </button>
 
