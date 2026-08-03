@@ -4,9 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Folder,
-  File,
   ChevronRight,
-  ChevronDown,
   Save,
   Plus,
   RefreshCw,
@@ -16,6 +14,11 @@ import {
   Upload,
   Edit2,
   Copy,
+  Download,
+  Film,
+  Image as ImageIcon,
+  Music,
+  FileText,
 } from 'lucide-react';
 import { Project } from '@/lib/db';
 
@@ -41,6 +44,37 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
   const [gdriveUrl, setGdriveUrl] = useState<string>('');
   const [isImportingGDrive, setIsImportingGDrive] = useState<boolean>(false);
   const editorFileInputRef = useRef<HTMLInputElement>(null);
+
+  const isVideoFile = (path: string | null) => {
+    if (!path) return false;
+    return /\.(mp4|webm|mov|mkv|avi)$/i.test(path);
+  };
+
+  const isImageFile = (path: string | null) => {
+    if (!path) return false;
+    return /\.(png|jpg|jpeg|gif|webp|svg|ico)$/i.test(path);
+  };
+
+  const isAudioFile = (path: string | null) => {
+    if (!path) return false;
+    return /\.(mp3|wav|ogg|m4a)$/i.test(path);
+  };
+
+  const isPdfFile = (path: string | null) => {
+    if (!path) return false;
+    return /\.pdf$/i.test(path);
+  };
+
+  const isMediaOrBinaryFile = (path: string | null) => {
+    if (!path) return false;
+    return (
+      isVideoFile(path) ||
+      isImageFile(path) ||
+      isAudioFile(path) ||
+      isPdfFile(path) ||
+      /\.(zip|tar|gz|7z|rar|exe|bin|iso)$/i.test(path)
+    );
+  };
 
   const handleImportGDrive = async () => {
     if (!gdriveUrl.trim()) return;
@@ -197,17 +231,20 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
     if (item.isDirectory) {
       fetchFiles(item.path);
     } else {
-      try {
-        const res = await fetch(`/api/files?action=read&path=${encodeURIComponent(item.path)}`);
-        const data = await res.json();
-        if (data.content !== undefined) {
-          setActiveFilePath(item.path);
-          setFileContent(data.content);
-          setStatusMsg('');
-          setMobileTab('editor'); // Auto switch to editor on mobile when file selected
+      setActiveFilePath(item.path);
+      setMobileTab('editor'); // Auto switch to editor on mobile when file selected
+
+      if (!isMediaOrBinaryFile(item.path)) {
+        try {
+          const res = await fetch(`/api/files?action=read&path=${encodeURIComponent(item.path)}`);
+          const data = await res.json();
+          if (data.content !== undefined) {
+            setFileContent(data.content);
+            setStatusMsg('');
+          }
+        } catch (err) {
+          console.error('Error reading file:', err);
         }
-      } catch (err) {
-        console.error('Error reading file:', err);
       }
     }
   };
@@ -264,6 +301,28 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
     return 'javascript';
   };
 
+  const renderFileIcon = (item: FileItem) => {
+    if (item.isDirectory) {
+      return <Folder className="w-4 h-4 text-amber-400 shrink-0" />;
+    }
+    if (isVideoFile(item.path)) {
+      return <Film className="w-4 h-4 text-purple-400 shrink-0" />;
+    }
+    if (isImageFile(item.path)) {
+      return <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />;
+    }
+    if (isAudioFile(item.path)) {
+      return <Music className="w-4 h-4 text-pink-400 shrink-0" />;
+    }
+    if (isPdfFile(item.path)) {
+      return <FileText className="w-4 h-4 text-rose-400 shrink-0" />;
+    }
+    return <FileCode className="w-4 h-4 text-blue-400 shrink-0" />;
+  };
+
+  const rawUrl = activeFilePath ? `/api/files/raw?path=${encodeURIComponent(activeFilePath)}` : '';
+  const downloadUrl = activeFilePath ? `/api/files/raw?path=${encodeURIComponent(activeFilePath)}&download=true` : '';
+
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] bg-gray-950 text-gray-100 overflow-hidden">
       {/* Mobile Sub-Header View Toggle (Visible only on mobile < md) */}
@@ -287,8 +346,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
               : 'text-gray-400 hover:text-gray-200'
           }`}
         >
-          <FileCode className="w-3.5 h-3.5" />
-          <span>📝 ตัวแก้ไขโค้ด</span>
+          {isVideoFile(activeFilePath) ? (
+            <Film className="w-3.5 h-3.5" />
+          ) : isImageFile(activeFilePath) ? (
+            <ImageIcon className="w-3.5 h-3.5" />
+          ) : (
+            <FileCode className="w-3.5 h-3.5" />
+          )}
+          <span>{isMediaOrBinaryFile(activeFilePath) ? '🎬 พรีวิวสื่อ' : '📝 ตัวแก้ไขโค้ด'}</span>
         </button>
       </div>
 
@@ -340,8 +405,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
             </div>
           </div>
 
-          <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-850 text-[11px] text-gray-400 font-mono truncate">
-            📁 {currentDir}
+          <div className="px-3 py-1.5 bg-gray-950 border-b border-gray-850 text-[11px] text-gray-400 font-mono truncate flex items-center justify-between">
+            <span className="truncate">📁 {currentDir}</span>
+            {currentDir.includes('workspace/video-editor') && (
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                Media Folder
+              </span>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
@@ -372,15 +442,22 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
                   }`}
                 >
                   <div className="flex items-center space-x-2 min-w-0 pr-1">
-                    {item.isDirectory ? (
-                      <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                    ) : (
-                      <FileCode className="w-4 h-4 text-blue-400 shrink-0" />
-                    )}
+                    {renderFileIcon(item)}
                     <span className="truncate">{item.name}</span>
                   </div>
 
                   <div className="flex items-center space-x-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition shrink-0">
+                    {!item.isDirectory && (
+                      <a
+                        href={`/api/files/raw?path=${encodeURIComponent(item.path)}&download=true`}
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 hover:bg-gray-700 text-gray-400 hover:text-emerald-300 rounded"
+                        title="ดาวน์โหลดไฟล์นี้ลงเครื่อง"
+                      >
+                        <Download className="w-3 h-3" />
+                      </a>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => handleCopyPath(item, e)}
@@ -412,16 +489,22 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
           </div>
         </div>
 
-        {/* Editor Container */}
+        {/* Editor / Media Viewer Container */}
         <div
           className={`flex-1 flex-col bg-gray-950 min-w-0 ${
             mobileTab === 'editor' ? 'flex w-full' : 'hidden md:flex'
           }`}
         >
-          {/* Editor Top Bar */}
+          {/* Top Bar */}
           <div className="h-10 bg-gray-900 border-b border-gray-800 px-3 sm:px-4 flex items-center justify-between min-w-0">
             <div className="flex items-center space-x-2 min-w-0">
-              <FileCode className="w-4 h-4 text-indigo-400 shrink-0" />
+              {isVideoFile(activeFilePath) ? (
+                <Film className="w-4 h-4 text-purple-400 shrink-0" />
+              ) : isImageFile(activeFilePath) ? (
+                <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+              ) : (
+                <FileCode className="w-4 h-4 text-indigo-400 shrink-0" />
+              )}
               <span className="text-xs font-mono text-gray-200 truncate">
                 {activeFilePath ? activeFilePath : 'ยังไม่ได้เลือกไฟล์'}
               </span>
@@ -434,39 +517,136 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
                     ✓ {statusMsg}
                   </span>
                 )}
-                <button
-                  onClick={handleSaveFile}
-                  disabled={isSaving}
-                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg flex items-center gap-1 shadow transition disabled:opacity-50"
+
+                {/* Always show Download Button for any selected file */}
+                <a
+                  href={downloadUrl}
+                  download
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow transition"
+                  title="ดาวน์โหลดไฟล์ลงเครื่องคอมพิวเตอร์/มือถือ"
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึกไฟล์'}</span>
-                </button>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>ดาวน์โหลด</span>
+                </a>
+
+                {/* Save button only for editable text files */}
+                {!isMediaOrBinaryFile(activeFilePath) && (
+                  <button
+                    onClick={handleSaveFile}
+                    disabled={isSaving}
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg flex items-center gap-1 shadow transition disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึกไฟล์'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* Monaco Editor area */}
-          <div className="flex-1 relative min-w-0">
+          {/* Main Area: Video Player, Image Viewer, Audio Player, PDF or Monaco Editor */}
+          <div className="flex-1 relative min-w-0 overflow-y-auto p-2 sm:p-4">
             {activeFilePath ? (
-              <Editor
-                height="100%"
-                theme="vs-dark"
-                language={getLanguageFromPath(activeFilePath)}
-                value={fileContent}
-                onChange={(value) => setFileContent(value || '')}
-                options={{
-                  fontSize: 13,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  tabSize: 2,
-                }}
-              />
+              isVideoFile(activeFilePath) ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                  <div className="w-full max-w-4xl bg-black rounded-2xl p-2 border border-gray-800 shadow-2xl">
+                    <video
+                      key={activeFilePath}
+                      controls
+                      autoPlay={false}
+                      preload="metadata"
+                      src={rawUrl}
+                      className="w-full max-h-[65vh] rounded-xl object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <a
+                      href={downloadUrl}
+                      download
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>📥 ดาวน์โหลดวิดีโอนี้ (.mp4) ลงเครื่อง</span>
+                    </a>
+                  </div>
+                </div>
+              ) : isImageFile(activeFilePath) ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                  <div className="max-w-4xl p-2 bg-gray-900 rounded-2xl border border-gray-800 shadow-2xl flex items-center justify-center">
+                    <img
+                      key={activeFilePath}
+                      src={rawUrl}
+                      alt={activeFilePath}
+                      className="max-h-[65vh] object-contain rounded-xl"
+                    />
+                  </div>
+                  <a
+                    href={downloadUrl}
+                    download
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>📥 ดาวน์โหลดรูปภาพนี้ลงเครื่อง</span>
+                  </a>
+                </div>
+              ) : isAudioFile(activeFilePath) ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4 max-w-xl mx-auto">
+                  <div className="w-full bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-2xl space-y-4 text-center">
+                    <Music className="w-12 h-12 text-pink-400 mx-auto animate-pulse" />
+                    <p className="text-sm font-mono text-gray-200">{activeFilePath}</p>
+                    <audio key={activeFilePath} controls src={rawUrl} className="w-full" />
+                    <a
+                      href={downloadUrl}
+                      download
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl text-xs transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>📥 ดาวน์โหลดไฟล์เสียงลงเครื่อง</span>
+                    </a>
+                  </div>
+                </div>
+              ) : isPdfFile(activeFilePath) ? (
+                <div className="h-full flex flex-col space-y-2">
+                  <iframe key={activeFilePath} src={rawUrl} className="w-full flex-1 rounded-xl border border-gray-800" />
+                </div>
+              ) : isMediaOrBinaryFile(activeFilePath) ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                  <div className="p-8 bg-gray-900 border border-gray-800 rounded-2xl text-center space-y-3 max-w-md">
+                    <FileText className="w-12 h-12 text-gray-500 mx-auto" />
+                    <p className="text-sm font-semibold text-gray-200">ไฟล์ไบนารี / Binary File</p>
+                    <p className="text-xs text-gray-400 font-mono break-all">{activeFilePath}</p>
+                    <a
+                      href={downloadUrl}
+                      download
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>📥 ดาวน์โหลดไฟล์นี้ลงเครื่อง</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full relative">
+                  <Editor
+                    height="100%"
+                    theme="vs-dark"
+                    language={getLanguageFromPath(activeFilePath)}
+                    value={fileContent}
+                    onChange={(value) => setFileContent(value || '')}
+                    options={{
+                      fontSize: 13,
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      tabSize: 2,
+                    }}
+                  />
+                </div>
+              )
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
                 <Code2 className="w-12 h-12 mb-2 text-gray-700" />
-                <p className="text-sm">เลือกไฟล์จากแถบด้านซ้ายเพื่อเปิดดูและแก้ไขโค้ดบน VPS</p>
+                <p className="text-sm">เลือกไฟล์จากแถบด้านซ้ายเพื่อเปิดดู เล่นวิดีโอ หรือดาวน์โหลดไฟล์</p>
                 <button
                   onClick={() => setMobileTab('files')}
                   className="md:hidden mt-3 px-3 py-1.5 bg-indigo-600/30 text-indigo-300 rounded-lg text-xs font-semibold border border-indigo-500/40"
@@ -500,10 +680,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
               {/* Option 1: Upload from Computer */}
               <div className="p-3.5 bg-gray-950 border border-gray-800 rounded-xl space-y-2">
                 <div className="font-bold text-gray-200 flex items-center justify-between">
-                  <span>📄 1. อัปโหลดจากคอมพิวเตอร์ (PC)</span>
+                  <span>📄 1. อัปโหลดจากคอมพิวเตอร์ / มือถือ</span>
                 </div>
                 <p className="text-gray-400 text-[11px]">
-                  เลือกไฟล์วิดีโอ (.mp4), เสียง (.mp3), ภาพ (.png) หรือเอกสารจากเครื่องคอมพิวเตอร์ของคุณ
+                  เลือกไฟล์วิดีโอ (.mp4), เสียง (.mp3), ภาพ (.png) หรือเอกสารเพื่อนำเข้าสู่โฟลเดอร์นี้
                 </p>
                 <button
                   type="button"
@@ -513,7 +693,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ activeProject }) => {
                   }}
                   className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition"
                 >
-                  💻 เลือกไฟล์จากคอมพิวเตอร์
+                  💻 เลือกไฟล์จากเครื่อง
                 </button>
               </div>
 

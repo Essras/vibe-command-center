@@ -4,44 +4,22 @@ import fsSync from 'fs';
 import path from 'path';
 import { getCurrentUser } from '@/lib/auth';
 import { extractGDriveId, downloadGDriveFolderToWorkspace } from '@/lib/gdrive';
-
-function getSafePath(relativePath: string) {
-  const vpsRoot = process.env.VPS_ROOT_PATH;
-  const appRoot = process.cwd();
-
-  let cleanPath = (relativePath || '.').trim().replace(/^(\.\/|\/)/, '');
-
-  if (cleanPath.startsWith('workspace') || cleanPath === '.' || !cleanPath) {
-    const appTarget = path.resolve(appRoot, cleanPath || '.');
-    if (fsSync.existsSync(appTarget)) {
-      return appTarget;
-    }
-  }
-
-  if (vpsRoot && fsSync.existsSync(vpsRoot)) {
-    const vpsProjectTarget = path.resolve(vpsRoot, 'root/vibe-command-center', cleanPath);
-    if (fsSync.existsSync(vpsProjectTarget)) {
-      return vpsProjectTarget;
-    }
-
-    const vpsDirectTarget = path.resolve(vpsRoot, cleanPath);
-    if (fsSync.existsSync(vpsDirectTarget)) {
-      return vpsDirectTarget;
-    }
-  }
-
-  return path.resolve(appRoot, cleanPath || '.');
-}
+import { getSafePath, serveRawFile } from '@/lib/fileUtils';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action') || 'list';
     const reqPath = searchParams.get('path') || '.';
+    const download = searchParams.get('download') === 'true';
 
     const targetPath = getSafePath(reqPath);
     const appRoot = process.cwd();
     const vpsRoot = process.env.VPS_ROOT_PATH;
+
+    if (action === 'raw' || action === 'download') {
+      return serveRawFile(req, targetPath, download || action === 'download');
+    }
 
     if (action === 'list') {
       if (!fsSync.existsSync(targetPath)) {

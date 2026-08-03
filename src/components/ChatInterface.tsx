@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Terminal,
   FileVideo,
+  Download,
 } from 'lucide-react';
 import { FavoriteModel, Project } from '@/lib/db';
 
@@ -345,24 +346,71 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           )}
 
-          {/* Output Files Download Quick-Bar */}
+          {/* Output Files Download Quick-Bar & Inline Video Player */}
           {vpsStatus.outputFiles.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] bg-emerald-950/70 p-2 rounded-lg border border-emerald-500/30">
-              <span className="font-bold text-emerald-300 flex items-center gap-1">
-                <FileVideo className="w-3.5 h-3.5 text-emerald-400" />
-                ไฟล์ผลลัพธ์พร้อมดาวน์โหลด (output/):
-              </span>
-              {vpsStatus.outputFiles.map((f, i) => (
-                <a
-                  key={i}
-                  href={`/vps_data/workspace/video-editor/output/${f.name}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1 transition shadow-sm"
-                >
-                  🎬 {f.name} ({f.sizeMB} MB)
-                </a>
-              ))}
+            <div className="mt-2 text-[11px] bg-emerald-950/70 p-2.5 rounded-xl border border-emerald-500/30 space-y-2 shadow-lg">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold text-emerald-300 flex items-center gap-1.5 text-xs">
+                  <FileVideo className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  🎉 ไฟล์ผลลัพธ์พร้อมใช้งาน/ดาวน์โหลด (output/):
+                </span>
+                <span className="text-[10px] text-emerald-400/80 font-mono">
+                  {vpsStatus.outputFiles.length} ไฟล์
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {vpsStatus.outputFiles.map((f, i) => {
+                  const isVideo = /\.(mp4|webm|mov|mkv|avi)$/i.test(f.name);
+                  const isImg = /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name);
+                  const rawPath = `workspace/video-editor/output/${f.name}`;
+                  const downloadLink = `/api/files/raw?path=${encodeURIComponent(rawPath)}&download=true`;
+
+                  return (
+                    <div key={i} className="flex items-center gap-1 bg-emerald-900/80 p-1 px-2 rounded-lg border border-emerald-500/40">
+                      <a
+                        href={downloadLink}
+                        download
+                        className="font-mono text-[11px] text-emerald-100 hover:text-white font-bold flex items-center gap-1 transition"
+                        title="คลิกเพื่อดาวน์โหลดไฟล์ลงเครื่อง"
+                      >
+                        {isVideo ? '🎬' : isImg ? '🖼️' : '📄'} {f.name} ({f.sizeMB} MB) 📥
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Render Inline Video Player for the first output video if present */}
+              {vpsStatus.outputFiles.some((f) => /\.(mp4|webm)$/i.test(f.name)) && (
+                <div className="mt-2 bg-black rounded-xl p-2 border border-emerald-500/30 max-w-xl">
+                  <div className="text-[10px] text-emerald-300 font-bold mb-1 flex items-center gap-1">
+                    <span>▶️ พรีวิววิดีโอผลลัพธ์สดบนหน้าจอ (ไม่ต้องเปิด Terminal):</span>
+                  </div>
+                  {vpsStatus.outputFiles
+                    .filter((f) => /\.(mp4|webm)$/i.test(f.name))
+                    .map((f, idx) => (
+                      <div key={idx} className="space-y-1 mb-2">
+                        <video
+                          controls
+                          preload="metadata"
+                          src={`/api/files/raw?path=${encodeURIComponent(`workspace/video-editor/output/${f.name}`)}`}
+                          className="w-full max-h-56 rounded-lg bg-black"
+                        />
+                        <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono px-1">
+                          <span>{f.name}</span>
+                          <a
+                            href={`/api/files/raw?path=${encodeURIComponent(`workspace/video-editor/output/${f.name}`)}&download=true`}
+                            download
+                            className="text-emerald-400 font-bold hover:underline"
+                          >
+                            📥 ดาวน์โหลด .mp4 ({f.sizeMB} MB)
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -454,6 +502,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
+                          a({ href, children }: any) {
+                            let targetUrl = href || '#';
+                            if (href && (href.startsWith('output/') || href.startsWith('workspace/') || href.startsWith('/vps_data/'))) {
+                              const cleanRel = href.replace(/^(\/vps_data\/|\.\/|\/)/, '');
+                              targetUrl = `/api/files/raw?path=${encodeURIComponent(cleanRel)}&download=true`;
+                            }
+                            return (
+                              <a
+                                href={targetUrl}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-400 hover:text-emerald-300 font-bold underline inline-flex items-center gap-1 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30"
+                              >
+                                <span>📥</span>
+                                <span>{children}</span>
+                              </a>
+                            );
+                          },
                           table({ children }: any) {
                             return (
                               <div className="overflow-x-auto max-w-full my-3 rounded-xl border border-gray-800 bg-gray-950/80 shadow-md">
@@ -814,9 +881,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 ) : (
                   <div className="bg-gray-950 p-2.5 rounded border border-gray-800 space-y-1.5 max-h-36 overflow-y-auto">
                     {vpsStatus.outputFiles.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between text-gray-300">
-                        <span className="truncate font-mono text-[11px] text-indigo-300">📹 {f.name}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">{f.sizeMB} MB</span>
+                      <div key={i} className="flex items-center justify-between text-gray-300 bg-gray-900 p-1.5 px-2.5 rounded border border-gray-800">
+                        <span className="truncate font-mono text-[11px] text-indigo-300">📹 {f.name} ({f.sizeMB} MB)</span>
+                        <a
+                          href={`/api/files/raw?path=${encodeURIComponent(`workspace/video-editor/output/${f.name}`)}&download=true`}
+                          download
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold flex items-center gap-1 transition shrink-0 ml-2"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>ดาวน์โหลด</span>
+                        </a>
                       </div>
                     ))}
                   </div>
