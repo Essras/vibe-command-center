@@ -278,10 +278,31 @@ mkdir -p input output temp transcript reports
 python3 vibe_agent_runner.py "temp/commands_${jobId}.json"
 
 echo "[JOB DONE] $(date)"
-rm -f "${flagPath}"`;
-            const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
+rm -f "temp/commands_${jobId}.json"
+rm -f "${flagPath}"
+rm -f "$0"`;
+            const scriptPath = path.join(workDir, `auto_run_${jobId}.sh`);
 
             try {
+              // Proactively clean up old auto_run scripts and command JSONs
+              try {
+                const files = await fs.readdir(workDir);
+                for (const file of files) {
+                  if (file.startsWith('auto_run_') && file.endsWith('.sh')) {
+                    await fs.unlink(path.join(workDir, file)).catch(() => {});
+                  }
+                }
+                const tempDir = path.join(workDir, 'temp');
+                if (fsSync.existsSync(tempDir)) {
+                  const tempFiles = await fs.readdir(tempDir);
+                  for (const file of tempFiles) {
+                    if (file.startsWith('commands_') && file.endsWith('.json')) {
+                      await fs.unlink(path.join(tempDir, file)).catch(() => {});
+                    }
+                  }
+                }
+              } catch (e) {}
+
               // Ensure temp folder exists and write commands JSON
               await fs.mkdir(path.join(workDir, 'temp'), { recursive: true });
               await fs.writeFile(commandsJsonPath, JSON.stringify(commandsList, null, 2), 'utf-8');
