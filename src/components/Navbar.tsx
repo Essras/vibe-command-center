@@ -10,6 +10,7 @@ import {
   Zap,
   ChevronDown,
   Cpu,
+  Settings,
 } from 'lucide-react';
 import { UserDropdownMenu } from './UserDropdownMenu';
 
@@ -181,9 +182,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenProjectModal}
               className="p-1.5 rounded-lg bg-gray-900 text-gray-300 hover:bg-gray-800 border border-gray-800 transition shrink-0 cursor-pointer"
-              title="เพิ่ม/จัดการโปรเจกต์ (GEMINI.md Memory)"
+              title="จัดการโปรเจกต์และแก้ไข Prompt (GEMINI.md Memory)"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
 

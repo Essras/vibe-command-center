@@ -179,6 +179,7 @@ export async function POST(req: Request) {
               (cleanCode.includes('python') ||
                 cleanCode.includes('ffmpeg') ||
                 cleanCode.includes('easy_ai_editor') ||
+                cleanCode.includes('auto_edit') ||
                 cleanCode.includes('whisper') ||
                 cleanCode.includes('#!/bin/bash') ||
                 cleanCode.includes('input/') ||
@@ -204,7 +205,7 @@ export async function POST(req: Request) {
             if (mediaFiles.length > 0) {
               const mainFile = mediaFiles[0];
               commandsToRun.push(
-                `python3 -m easy_ai_editor.editor --input "input/${mainFile}" --output "output/" || ffmpeg -i "input/${mainFile}" -c:v copy "output/output_${mainFile}"`
+                `python3 auto_edit.py || ffmpeg -i "input/${mainFile}" -c:v copy "output/output_${mainFile}"`
               );
             }
           }
