@@ -23,6 +23,12 @@ import {
   Terminal,
   FileVideo,
   Download,
+  FolderKanban,
+  Image as ImageIcon,
+  Play,
+  Maximize2,
+  ChevronRight,
+  Eye,
 } from 'lucide-react';
 import { FavoriteModel, Project } from '@/lib/db';
 
@@ -67,18 +73,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const prevOutputFilesLength = useRef(0);
+
   const [vpsStatus, setVpsStatus] = useState<{
     isRunning: boolean;
     runningProcesses: string[];
     outputFiles: { name: string; sizeMB: string; modified: string }[];
     activeProcessesCount: number;
     logContent?: string;
+    agentSteps?: { name: string; status: string; error?: string; healing?: string }[];
   }>({
     isRunning: false,
     runningProcesses: [],
     outputFiles: [],
     activeProcessesCount: 0,
     logContent: '',
+    agentSteps: [],
   });
   const [showStatusModal, setShowStatusModal] = useState(false);
 
@@ -99,10 +111,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           outputFiles: data.outputFiles || [],
           activeProcessesCount: data.activeProcessesCount || 0,
           logContent: data.logContent || '',
+          agentSteps: data.agentSteps || [],
         });
       }
     } catch (e) {}
   };
+
+  useEffect(() => {
+    if (vpsStatus.outputFiles.length > prevOutputFilesLength.current) {
+      if (window.innerWidth >= 768) {
+        setIsRightPanelOpen(true);
+      }
+    }
+    prevOutputFilesLength.current = vpsStatus.outputFiles.length;
+  }, [vpsStatus.outputFiles]);
 
   useEffect(() => {
     checkVpsStatus();
@@ -233,9 +255,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     favoriteModels.find((m) => m.id === activeModelId)?.name || activeModelId;
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] bg-gray-950 text-gray-100 min-w-0">
-      {/* Top Banner / Project Info */}
-      <div className="bg-gray-900/40 border-b border-gray-800/60 px-4 py-2 flex items-center justify-between min-w-0 shrink-0">
+    <div className="flex-1 flex flex-row h-[calc(100vh-3.5rem)] bg-gray-950 text-gray-100 min-w-0 overflow-hidden">
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        {/* Top Banner / Project Info */}
+        <div className="bg-gray-900/40 border-b border-gray-800/60 px-4 py-2 flex items-center justify-between min-w-0 shrink-0">
         <div className="flex items-center space-x-2.5 min-w-0">
           <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
             <Sparkles className="w-3.5 h-3.5" />
@@ -271,8 +295,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </button>
 
           <button
+            onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
+            className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer ${
+              isRightPanelOpen
+                ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600/30'
+                : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-750'
+            }`}
+            title="เปิด/ปิด แผงผลลัพธ์วิดีโอและรูปภาพข้างขวา"
+          >
+            <FolderKanban className="w-3.5 h-3.5 text-indigo-400" />
+            <span>{isRightPanelOpen ? 'ปิดแผงขวา ➔' : '📂 ดูแผงผลลัพธ์'}</span>
+          </button>
+
+          <button
             onClick={onClearHistory}
-            className="p-1 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-800 transition flex items-center gap-1 text-[11px]"
+            className="p-1.5 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-800 transition flex items-center gap-1 text-[11px] cursor-pointer"
             title="ล้างประวัติแชท"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -328,13 +365,70 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
 
-          {/* Live Execution Log (auto_run.log) directly visible on screen */}
+          {/* Agent Steps Progress List (Autonomous Self-Healing Steps) */}
+          {vpsStatus.agentSteps && vpsStatus.agentSteps.length > 0 && (
+            <div className="mt-2 bg-black/70 p-2.5 rounded-xl border border-gray-800 space-y-2">
+              <div className="text-[10px] text-gray-400 font-bold border-b border-gray-800 pb-1 flex items-center gap-1.5">
+                <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                <span>ขั้นตอนการทำงานของ AI Agent (มีระบบช่วยแก้ไขปัญหาอัตโนมัติ):</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5 mt-1 max-h-48 overflow-y-auto">
+                {vpsStatus.agentSteps.map((step, idx) => {
+                  const isPending = step.status === 'PENDING';
+                  const isProcessing = step.status === 'PROCESSING';
+                  const isCompleted = step.status === 'COMPLETED';
+                  const isFailed = step.status === 'FAILED';
+                  
+                  return (
+                    <div key={idx} className="flex flex-col bg-gray-900/60 p-1.5 px-2.5 rounded-lg border border-gray-850/50">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">
+                            {isCompleted ? '✅' : isFailed ? '❌' : isProcessing ? '🔄' : '💤'}
+                          </span>
+                          <span className={`font-mono text-[11px] ${
+                            isCompleted ? 'text-gray-400 line-through opacity-80' : 
+                            isFailed ? 'text-red-400 font-bold' : 
+                            isProcessing ? 'text-indigo-300 font-bold animate-pulse' : 'text-gray-500'
+                          }`}>
+                            {step.name}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          isCompleted ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20' : 
+                          isFailed ? 'bg-red-950 text-red-400 border border-red-500/20' : 
+                          isProcessing ? 'bg-indigo-950 text-indigo-400 border border-indigo-500/20 animate-pulse' : 
+                          'bg-gray-950 text-gray-600'
+                        }`}>
+                          {step.status}
+                        </span>
+                      </div>
+                      
+                      {step.healing && isProcessing && (
+                        <div className="mt-1 ml-6 text-[10px] text-amber-400 font-sans flex items-center gap-1 animate-pulse">
+                          <span>🔧 {step.healing}</span>
+                        </div>
+                      )}
+                      
+                      {step.error && isFailed && (
+                        <div className="mt-1 ml-6 text-[10px] text-red-500 font-mono bg-red-950/20 p-1.5 rounded border border-red-500/10 whitespace-pre-wrap break-all">
+                          {step.error.slice(0, 150)}...
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Live Execution Log (auto_run.log) */}
           {vpsStatus.logContent && (
-            <div className="mt-2 font-mono text-[11px] bg-black/80 p-2.5 rounded-lg border border-gray-800 text-emerald-400 overflow-x-auto max-h-32">
-              <div className="text-[10px] text-gray-400 mb-1 font-sans flex justify-between border-b border-gray-800/80 pb-1">
+            <div className="mt-2 font-mono text-[10px] bg-black/90 p-2.5 rounded-lg border border-gray-800 text-emerald-400 overflow-x-auto max-h-24">
+              <div className="text-[9px] text-gray-400 mb-1 font-sans flex justify-between border-b border-gray-800/80 pb-1">
                 <span className="font-bold text-gray-300 flex items-center gap-1">
                   <Terminal className="w-3 h-3 text-amber-400" />
-                  📋 Live Execution Log (auto_run.log บนหน้าจอสด):
+                  📋 Log การทำงานล่าสุดบน VPS (auto_run.log):
                 </span>
                 <span className={vpsStatus.isRunning ? 'text-amber-400 animate-pulse font-bold' : 'text-emerald-400 font-bold'}>
                   {vpsStatus.isRunning ? '🔄 กำลังทำงาน...' : '✅ ทำงานเสร็จแล้ว'}
@@ -365,16 +459,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   const isImg = /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name);
                   const rawPath = `workspace/video-editor/output/${f.name}`;
                   const downloadLink = `/api/files/raw?path=${encodeURIComponent(rawPath)}&download=true`;
+                  const previewUrl = `/api/files/raw?path=${encodeURIComponent(rawPath)}`;
+
+                  if (isImg) {
+                    return (
+                      <div 
+                        key={i} 
+                        className="flex items-center gap-1.5 bg-emerald-900/80 p-1 px-2 rounded-lg border border-emerald-500/40 cursor-pointer hover:bg-emerald-800 transition"
+                        onClick={() => setLightboxImage(previewUrl)}
+                        title="คลิกเพื่อพรีวิวรูปภาพขยายใหญ่"
+                      >
+                        <img src={previewUrl} className="w-4 h-4 rounded object-cover border border-white/20" />
+                        <span className="font-mono text-[11px] text-emerald-100 hover:text-white font-bold flex items-center gap-1 transition">
+                          🖼️ {f.name} ({f.sizeMB} MB) 🔍
+                        </span>
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div key={i} className="flex items-center gap-1 bg-emerald-900/80 p-1 px-2 rounded-lg border border-emerald-500/40">
+                    <div key={i} className="flex items-center gap-1 bg-emerald-900/80 p-1 px-2 rounded-lg border border-emerald-500/40 hover:bg-emerald-800 transition">
                       <a
                         href={downloadLink}
                         download
                         className="font-mono text-[11px] text-emerald-100 hover:text-white font-bold flex items-center gap-1 transition"
                         title="คลิกเพื่อดาวน์โหลดไฟล์ลงเครื่อง"
                       >
-                        {isVideo ? '🎬' : isImg ? '🖼️' : '📄'} {f.name} ({f.sizeMB} MB) 📥
+                        {isVideo ? '🎬' : '📄'} {f.name} ({f.sizeMB} MB) 📥
                       </a>
                     </div>
                   );
@@ -546,24 +657,39 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             const match = /language-(\w+)/.exec(className || '');
                             const codeString = String(children).replace(/\n$/, '');
                             const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
+                            const lang = match ? match[1].toLowerCase() : '';
+                            const isPrompt = ['prompt', 'midjourney', 'sd', 'text', 'markdown'].includes(lang);
 
                             return !inline && match ? (
-                              <div className="relative my-3 rounded-lg overflow-hidden border border-gray-800 max-w-full overflow-x-auto">
-                                <div className="bg-gray-950 px-3 py-1.5 flex items-center justify-between text-[10px] text-gray-400 border-b border-gray-800">
-                                  <span>{match[1].toUpperCase()}</span>
+                              <div className={`relative my-3 rounded-xl overflow-hidden border max-w-full overflow-x-auto shadow-md ${
+                                isPrompt ? 'border-purple-800/60' : 'border-gray-800'
+                              }`}>
+                                <div className={`px-3.5 py-2 flex items-center justify-between text-[10px] font-semibold border-b ${
+                                  isPrompt 
+                                    ? 'bg-purple-950/80 text-purple-300 border-purple-800/40' 
+                                    : 'bg-gray-950 text-gray-400 border-gray-800'
+                                }`}>
+                                  <span className="flex items-center gap-1">
+                                    {isPrompt && <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />}
+                                    {isPrompt ? `${match[1].toUpperCase()} PROMPT` : match[1].toUpperCase()}
+                                  </span>
                                   <button
                                     onClick={() => handleCopyCode(codeString, codeId)}
-                                    className="flex items-center gap-1 hover:text-white transition"
+                                    className={`flex items-center gap-1.5 transition px-2 py-0.5 rounded ${
+                                      isPrompt
+                                        ? 'hover:bg-purple-800/40 hover:text-white text-purple-200'
+                                        : 'hover:bg-gray-800 hover:text-white text-gray-300'
+                                    }`}
                                   >
                                     {copiedId === codeId ? (
                                       <>
-                                        <Check className="w-3 h-3 text-emerald-400" />
-                                        <span className="text-emerald-400">คัดลอกแล้ว</span>
+                                        <Check className="w-3 h-3 text-emerald-400 font-bold" />
+                                        <span className="text-emerald-400">คัดลอกแล้ว!</span>
                                       </>
                                     ) : (
                                       <>
                                         <Copy className="w-3 h-3" />
-                                        <span>คัดลอกโค้ด</span>
+                                        <span>{isPrompt ? 'คัดลอก Prompt' : 'คัดลอกโค้ด'}</span>
                                       </>
                                     )}
                                   </button>
@@ -576,7 +702,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                                     margin: 0,
                                     borderRadius: 0,
                                     fontSize: '11px',
-                                    background: '#0d1117',
+                                    background: isPrompt ? '#0c0714' : '#0d1117',
+                                    padding: '12px',
                                   }}
                                   {...props}
                                 >
@@ -825,6 +952,195 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Right side panel: Generated Media & Prompts Gallery */}
+      {isRightPanelOpen && (
+        <div className="hidden md:flex w-80 lg:w-96 border-l border-gray-800 bg-gray-900/60 backdrop-blur-sm h-full flex-col shrink-0 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-950 shrink-0">
+            <h3 className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+              <FolderKanban className="w-4 h-4 text-indigo-400" />
+              <span>ผลลัพธ์สื่อที่สร้างเสร็จ ({vpsStatus.outputFiles.length})</span>
+            </h3>
+            <button
+              onClick={() => setIsRightPanelOpen(false)}
+              className="text-gray-400 hover:text-gray-200 p-1 rounded hover:bg-gray-800 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {vpsStatus.outputFiles.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 text-gray-500">
+                <FolderKanban className="w-10 h-10 text-gray-700 mb-2" />
+                <p className="text-[11px] italic">ยังไม่มีไฟล์ผลลัพธ์ในโปรเจกต์นี้</p>
+                <p className="text-[10px] text-gray-600 mt-1 max-w-[200px]">เมื่อ AI ทำการเรนเดอร์หรือสร้างสื่อเสร็จแล้ว ผลงานจะปรากฏขึ้นตรงนี้โดยอัตโนมัติ</p>
+              </div>
+            ) : (
+              <>
+                {/* Video Previews */}
+                {vpsStatus.outputFiles.some(f => /\.(mp4|webm|mov|mkv|avi)$/i.test(f.name)) && (
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                      <FileVideo className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>วิดีโอตัดต่อผลลัพธ์</span>
+                    </h4>
+                    <div className="space-y-3">
+                      {vpsStatus.outputFiles
+                        .filter(f => /\.(mp4|webm|mov|mkv|avi)$/i.test(f.name))
+                        .map((f, i) => (
+                          <div key={i} className="bg-black/40 rounded-xl p-2 border border-gray-850 space-y-1.5">
+                            <video
+                              controls
+                              preload="metadata"
+                              src={`/api/files/raw?path=${encodeURIComponent(`workspace/video-editor/output/${f.name}`)}`}
+                              className="w-full rounded-lg bg-black max-h-48"
+                            />
+                            <div className="flex items-center justify-between px-1">
+                              <span className="font-mono text-[10px] text-gray-300 truncate max-w-[180px]" title={f.name}>
+                                🎬 {f.name}
+                              </span>
+                              <a
+                                href={`/api/files/raw?path=${encodeURIComponent(`workspace/video-editor/output/${f.name}`)}&download=true`}
+                                download
+                                className="text-emerald-400 hover:text-emerald-300 text-[10px] font-bold flex items-center gap-0.5"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>โหลด</span>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Image Grid Previews */}
+                {vpsStatus.outputFiles.some(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name)) && (
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                      <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>รูปภาพที่สร้างขึ้น</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {vpsStatus.outputFiles
+                        .filter(f => /\.(png|jpg|jpeg|gif|webp)$/i.test(f.name))
+                        .map((f, i) => {
+                          const rawPath = `workspace/video-editor/output/${f.name}`;
+                          const rawUrl = `/api/files/raw?path=${encodeURIComponent(rawPath)}`;
+                          return (
+                            <div key={i} className="group relative bg-black/40 rounded-xl overflow-hidden border border-gray-850 aspect-square flex flex-col justify-between">
+                              <div className="flex-1 w-full h-full relative overflow-hidden flex items-center justify-center bg-gray-950">
+                                <img
+                                  src={rawUrl}
+                                  alt={f.name}
+                                  className="object-cover w-full h-full group-hover:scale-105 transition duration-200"
+                                />
+                                <button
+                                  onClick={() => setLightboxImage(rawUrl)}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white gap-1 text-[10px] font-semibold cursor-pointer"
+                                >
+                                  <Maximize2 className="w-4 h-4" />
+                                  <span>ขยาย</span>
+                                </button>
+                              </div>
+                              <div className="bg-black/60 p-1 px-2 text-[9px] text-gray-300 truncate flex justify-between items-center border-t border-gray-850/30">
+                                <span className="truncate flex-1 font-mono">{f.name}</span>
+                                <a
+                                  href={rawUrl + "&download=true"}
+                                  download
+                                  className="text-emerald-400 hover:text-emerald-300 shrink-0 ml-1"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Other files (Text/SRT/Log/Reports) */}
+                {vpsStatus.outputFiles.some(f => !/\.(mp4|webm|mov|mkv|avi|png|jpg|jpeg|gif|webp)$/i.test(f.name)) && (
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5 text-amber-400" />
+                      <span>ไฟล์เอกสารและข้อความ</span>
+                    </h4>
+                    <div className="space-y-1.5">
+                      {vpsStatus.outputFiles
+                        .filter(f => !/\.(mp4|webm|mov|mkv|avi|png|jpg|jpeg|gif|webp)$/i.test(f.name))
+                        .map((f, i) => {
+                          const rawPath = `workspace/video-editor/output/${f.name}`;
+                          return (
+                            <div key={i} className="flex items-center justify-between text-gray-300 bg-black/40 p-2 rounded-lg border border-gray-850 font-mono text-[10px]">
+                              <span className="truncate text-indigo-300">📄 {f.name}</span>
+                              <a
+                                href={`/api/files/raw?path=${encodeURIComponent(rawPath)}&download=true`}
+                                download
+                                className="text-emerald-400 hover:text-emerald-300 font-bold ml-2"
+                              >
+                                📥
+                              </a>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 bg-black/40 rounded-full cursor-pointer"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          
+          <img
+            src={lightboxImage}
+            alt="Preview"
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          
+          <div className="mt-4 flex gap-3" onClick={(e) => e.stopPropagation()}>
+            <a
+              href={lightboxImage + "&download=true"}
+              download
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>ดาวน์โหลดภาพ</span>
+            </a>
+            <button
+              onClick={() => {
+                const pathStr = lightboxImage.split('path=')[1];
+                const decodedPath = pathStr ? decodeURIComponent(pathStr.split('&')[0]) : '';
+                const filename = decodedPath.split('/').pop() || 'image.png';
+                navigator.clipboard.writeText(filename);
+                alert(`คัดลอกชื่อไฟล์ ${filename} แล้ว`);
+              }}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Copy className="w-4 h-4" />
+              <span>คัดลอกชื่อไฟล์</span>
+            </button>
           </div>
         </div>
       )}

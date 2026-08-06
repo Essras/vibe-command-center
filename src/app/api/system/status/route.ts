@@ -31,6 +31,16 @@ export async function GET() {
       } catch (e) {}
     }
 
+    // ── Agent Steps: Read vibe_agent_steps.json ──
+    let agentSteps: any[] = [];
+    const stepsPath = path.join(workDir, 'vibe_agent_steps.json');
+    if (fsSync.existsSync(stepsPath)) {
+      try {
+        const rawSteps = fsSync.readFileSync(stepsPath, 'utf-8');
+        agentSteps = JSON.parse(rawSteps);
+      } catch (e) {}
+    }
+
     // ── Output Files ──
     const outputDir = path.join(appRoot, 'workspace/video-editor/output');
     let outputFiles: { name: string; sizeMB: string; modified: string }[] = [];
@@ -56,6 +66,7 @@ export async function GET() {
       runningProcesses: isRunning ? [`[JOB RUNNING since ${jobStartedAt}]`] : [],
       outputFiles,
       logContent,
+      agentSteps,
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {

@@ -262,12 +262,30 @@ if [ -n "$INPUT_FILE" ]; then
   fi
 fi`;
 
+            // Write commands to JSON file for agent runner
+            const jobId = Date.now();
+            const commandsList = [...wrappedBlocks, fallbackBlock];
+            const commandsJsonPath = path.join(workDir, `temp/commands_${jobId}.json`);
+            
             // Write flag file at start, clean it at end of script
             // NOTE: Alpine Linux has no bash — use sh
-            const scriptContent = `#!/bin/sh\nexec > "${logPath}" 2>&1\necho "[JOB STARTED] $(date)"\ncd "${workDir}"\nmkdir -p input output temp transcript reports\n\n${gpuDetect}\n\n${wrappedBlocks.join('\n\n')}\n\n${fallbackBlock}\n\necho "[JOB DONE] $(date)"\nrm -f "${flagPath}"`;
+            const scriptContent = `#!/bin/sh
+exec > "${logPath}" 2>&1
+echo "[JOB STARTED] $(date)"
+cd "${workDir}"
+mkdir -p input output temp transcript reports
+
+python3 vibe_agent_runner.py "temp/commands_${jobId}.json"
+
+echo "[JOB DONE] $(date)"
+rm -f "${flagPath}"`;
             const scriptPath = path.join(workDir, `auto_run_${Date.now()}.sh`);
 
             try {
+              // Ensure temp folder exists and write commands JSON
+              await fs.mkdir(path.join(workDir, 'temp'), { recursive: true });
+              await fs.writeFile(commandsJsonPath, JSON.stringify(commandsList, null, 2), 'utf-8');
+
               // Write flag BEFORE spawning so status API sees it immediately
               await fs.writeFile(flagPath, new Date().toISOString(), 'utf-8');
               await fs.writeFile(scriptPath, scriptContent, { mode: 0o755 });
@@ -276,6 +294,11 @@ fi`;
                 cwd: workDir,
                 detached: true,
                 stdio: 'ignore',
+                env: {
+                  ...process.env,
+                  GEMINI_API_KEY: db.keys?.geminiApiKey || process.env.GEMINI_API_KEY || '',
+                  OPENROUTER_API_KEY: db.keys?.openrouterApiKey || process.env.OPENROUTER_API_KEY || '',
+                }
               });
 
               // Send Telegram alert on job start
